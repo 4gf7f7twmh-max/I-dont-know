@@ -4,16 +4,23 @@ Kochbuch-App im Browser mit Schritt-für-Schritt-Anleitungen für jedes Kücheng
 
 ## Was drin ist
 
-- 143 Rezepte in 13 Kategorien aus 44 Ländern und Regionen, davon 10 eigene Kreationen
-- 311 Geräte-Anleitungen: Für die meisten Rezepte gibt es getrennte Anleitungen für Herd, Backofen, Heißluftfritteuse, Thermomix, Mikrowelle, Schnellkochtopf, Slow Cooker, Grill oder „ohne Kochen“
-- 33 animierte Techniken als SVG, jede Animation zeigt die Einstellungen des Schritts (Temperatur, Ofenmodus, Thermomix-Stufe, Linkslauf, Zeit)
+- 4522 Rezepte aus über 120 Ländern und Regionen:
+  - 160 eigene Rezepte mit getrennten Anleitungen pro Gerät, davon 17 aus der Sterneküche (mit Anrichte-Plan) und 10 eigene Kreationen
+  - 4362 Rezepte aus dem Internet: das komplette deutsche Wikibooks-Kochbuch (650) und das englische Wikibooks Cookbook (3712), Lizenz CC BY-SA, jeweils mit Link zum Original
+- Sterneküche: Jakobsmuscheln, Rinderfilet mit Fondant, confierter Lachs, Kalbsbäckchen, Entenbrust, Beef Tatar, Tomatenessenz, Zander mit Beurre blanc, Ravioli, Lammrücken, Schokoladen-Crémeux, Zitronentarte, Rote Bete in Texturen, Kürbis-Velouté sowie Kalbsjus, Beurre blanc und Hollandaise als Grundtechniken
+- Anrichte-Plan: Ein Teller von oben, auf dem jede Komponente nacheinander erscheint, mit Uhrzeit-Markierungen und Erklärung pro Handgriff. Dazu eine Anrichte-Schule mit 12 Grundtechniken (Swoosh, Quenelle, Punkte, Ringform, Fächern, Höhe …)
+- Gemeinsame Einkaufsliste: In der über Claude geteilten Version live für alle Eingeladenen, sonst lokal und als Text teilbar
+- Mit Claude umschreiben (nur in der Claude-Version): übersetzt englische Rezepte und schreibt jedes Rezept für ein anderes Gerät um, das Ergebnis wird für alle gespeichert
+- 340 Geräte-Anleitungen: getrennte Anleitungen für Herd, Backofen, Heißluftfritteuse, Thermomix, Mikrowelle, Schnellkochtopf, Slow Cooker, Grill, Sous-vide oder „ohne Kochen“
+- 37 animierte Techniken als SVG, jede Animation zeigt die Einstellungen des Schritts (Temperatur, Ofenmodus, Thermomix-Stufe, Linkslauf, Zeit)
 - Kochmodus im Vollbild mit Wischgesten, Pfeiltasten und eingeschaltetem Bildschirm
 - Timer an jedem Schritt mit Zeitangabe, mehrere gleichzeitig, mit Signalton und Vibration
 - Portionen umrechnen, Zutaten abhaken, fehlende Zutaten auf die Einkaufsliste
 - Favoriten, Notizen pro Rezept, heller und dunkler Modus
 - „Meine Küche“: Geräte auswählen, die man hat, die App filtert danach
 - Eigene Rezepte anlegen: Animation, Temperatur, Stufe und Timer werden aus dem Text erkannt (z. B. „200 °C Umluft“, „5 Min./100 °C/Linkslauf/Stufe 1“). Export und Import als JSON
-- Online-Suche in der freien Datenbank TheMealDB (englische Texte, Animationen werden automatisch zugeordnet), Rezepte lassen sich in „Meine Rezepte“ übernehmen
+- Suche mit deutschen Begriffen findet auch englische Rezepte („Hähnchen“ findet „Chicken“)
+- Zusätzliche Live-Suche in TheMealDB (englisch, mit Fotos), Rezepte lassen sich in „Meine Rezepte“ übernehmen
 - Installierbar als App (PWA) und offline nutzbar
 
 Alle Daten (Favoriten, Einkaufsliste, Notizen, eigene Rezepte) bleiben im Browser des Geräts.
@@ -39,7 +46,11 @@ js/devices.js         Geräte, Kategorien, Techniken
 js/icons.js           Strich-Icons
 js/animations.js      SVG-Szenen für jede Technik
 js/app.js             Routing, Ansichten, Kochmodus, Timer, Editor, Online-Suche
-data/*.js             Rezepte, nach Kategorie aufgeteilt
+js/plating.js         Anrichte-Pläne (Teller von oben)
+data/*.js             eigene Rezepte, nach Kategorie aufgeteilt
+data/web/index.js     Suchindex der Internet-Rezepte
+data/web/chunk-*.js   Internet-Rezepte, werden bei Bedarf nachgeladen
+tools/import_wikibooks.py  Import-Skript für die Wikibooks-Rezepte
 sw.js                 Service Worker für den Offline-Modus
 ```
 
@@ -71,6 +82,18 @@ Felder: `c` Kategorie (siehe `js/devices.js`), `d` Schwierigkeit 1 bis 3, `p` Po
 Ein Schritt ist `[technik, text, optionen]`. Optionen: `t` Minuten, `sec` Sekunden, `c` Temperatur in °C oder `'Varoma'`, `mo` Ofenmodus (`OU`, `U`, `G`, `UG`), `h` Herdhitze (`max`, `hoch`, `mittel`, `niedrig`), `s` Thermomix-Stufe (Zahl, `'teig'`, `'sanft'`), `l` Linkslauf, `k` Kerntemperatur, `w` Watt, `lvl` Slow-Cooker-Stufe, `p` Druckstufe, `i` Ofeninhalt für die Animation (`cake`, `loaf`, `pizza`, `roast`, `tray`, `cookies`, `dish`).
 
 Technik-Schlüssel: prep, chop, grate, stir, boil, simmer, fry, flip, deepfry, bake, airfry, tm, whisk, mix, fold, knead, shape, rest, season, pour, serve, blend, grill, steam, roll, cool, chill, micro, slow, pressure, mash, spread, layer.
+
+## Internet-Rezepte neu importieren
+
+Die Wikitexte werden mit der MediaWiki-API geladen (prop=revisions, 50 Seiten pro Anfrage) und als JSON `{Titel: Wikitext}` gespeichert, dann:
+
+```
+python3 tools/import_wikibooks.py de_raw.json en_raw.json data/web
+```
+
+## Geteilte Einkaufsliste
+
+Die Live-Synchronisierung nutzt die Datenbank der veröffentlichten Claude-Version. Wer per E-Mail als Bearbeiter eingeladen ist, kann mitschreiben, alle sehen Änderungen sofort. In jeder anderen Umgebung (eigener Webserver, Datei) bleibt die Liste lokal und lässt sich als Text teilen.
 
 ## Hinweise
 

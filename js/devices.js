@@ -11,6 +11,7 @@ window.DEVICES = {
   dkt:      { n: 'Schnellkochtopf',   sub: 'Dampfdrucktopf, Instant Pot' },
   slow:     { n: 'Slow Cooker',       sub: 'Schongarer' },
   grill:    { n: 'Grill',             sub: 'Gas, Holzkohle oder Elektro' },
+  sousvide: { n: 'Sous-vide',         sub: 'Wasserbad mit Stick, Vakuumbeutel' },
   kalt:     { n: 'Ohne Kochen',       sub: 'Messer, Schüssel, Mixer' }
 };
 
@@ -27,7 +28,11 @@ window.CATS = {
   kuchen:      { n: 'Kuchen & Torten',       h: 336, ic: 'cake' },
   brot:        { n: 'Brot & Gebäck',         h: 30,  ic: 'bread' },
   dessert:     { n: 'Desserts',              h: 300, ic: 'dessert' },
-  kreation:    { n: 'Eigene Kreationen',     h: 262, ic: 'spark' }
+  kreation:    { n: 'Eigene Kreationen',     h: 262, ic: 'spark' },
+  sterne:      { n: 'Sterneküche',           h: 40,  ic: 'star' },
+  saucen:      { n: 'Saucen & Dips',         h: 14,  ic: 'sauce' },
+  getraenke:   { n: 'Getränke',              h: 188, ic: 'drink' },
+  welt:        { n: 'Weitere Gerichte',      h: 160, ic: 'globe2' }
 };
 
 /* Aktionen: Bezeichnung für die Schritt-Animation */
@@ -39,5 +44,5 @@ window.ACTIONS = {
   season: 'Würzen', pour: 'Angießen', serve: 'Anrichten', blend: 'Pürieren', grill: 'Grillen',
   steam: 'Dämpfen', roll: 'Ausrollen', cool: 'Abkühlen', chill: 'Kühlen', micro: 'Mikrowelle',
   slow: 'Slow Cooker', pressure: 'Druckgaren', mash: 'Stampfen', spread: 'Bestreichen',
-  layer: 'Schichten'
+  layer: 'Schichten', sousvide: 'Sous-vide garen', torch: 'Abflämmen', pipe: 'Spritzen & Punkte setzen', strain: 'Passieren'
 };

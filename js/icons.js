@@ -38,6 +38,11 @@ window.ICONS = {
   fan: '<circle cx="12" cy="12" r="2"/><path d="M12 10c0-4 1-7 4-7s2 4-4 7zM14 12c4 0 7 1 7 4s-4 2-7-4zM12 14c0 4-1 7-4 7s-2-4 4-7zM10 12c-4 0-7-1-7-4s4-2 7 4z"/>',
   layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
   spark: '<path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 16.9l-5.4 2.9 1.1-6.1-4.5-4.3 6.1-.8z"/>',
+  plate: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5.5"/>',
+  users2: '<circle cx="8" cy="9" r="3"/><circle cx="16.5" cy="9" r="3"/><path d="M2.5 19a5.5 5.5 0 0 1 11 0M11 19a5.5 5.5 0 0 1 11 0"/>',
+  wand: '<path d="M4 20L15 9M14 4v3M19 9h-3M17.5 5.5l-2 2M6 7l1 1M10 3v1"/>',
+  cloud: '<path d="M7 18a4.5 4.5 0 0 1-.5-9 6 6 0 0 1 11.6 1.6A3.8 3.8 0 0 1 17.5 18z"/>',
   /* Kategorien (48er) */
   c_egg: '<ellipse cx="24" cy="26" rx="15" ry="13"/><circle cx="24" cy="27" r="6"/><path d="M14 16c3-5 7-7 10-7s7 2 10 7"/>',
   c_soup: '<path d="M7 22h34a17 17 0 0 1-34 0z"/><path d="M17 15c-2-3 2-4 0-7M24 15c-2-3 2-4 0-7M31 15c-2-3 2-4 0-7"/><path d="M15 39h18"/>',
@@ -52,6 +57,10 @@ window.ICONS = {
   c_bread: '<path d="M8 34c-3-10 6-20 16-20s19 10 16 20z"/><path d="M8 34h32"/><path d="M17 22l3 6M24 20l2 7M31 22l1 6"/>',
   c_dessert: '<path d="M14 22h20l-3 18H17z"/><path d="M12 22a12 10 0 0 1 24 0"/><circle cx="24" cy="9" r="3"/><path d="M24 12v2"/>',
   c_spark: '<path d="M24 5l4 12 12 4-12 4-4 12-4-12-12-4 12-4z"/><path d="M38 32l1.5 4.5L44 38l-4.5 1.5L38 44l-1.5-4.5L32 38l4.5-1.5z"/><path d="M10 6l1 3 3 1-3 1-1 3-1-3-3-1 3-1z"/>',
+  c_star: '<path d="M24 5l5.6 12 13 1.4-9.7 8.8 2.8 12.8L24 33.5 12.3 40l2.8-12.8L5.4 18.4l13-1.4z"/>',
+  c_sauce: '<path d="M8 28h32c0 7-7 12-16 12S8 35 8 28z"/><path d="M8 28c0-3 7-5 16-5s16 2 16 5"/><path d="M30 23l8-16"/><circle cx="38" cy="6" r="2"/>',
+  c_drink: '<path d="M12 8h24l-3 32H15z"/><path d="M13 18h22"/><path d="M28 8l6-5"/><circle cx="20" cy="27" r="1.5"/><circle cx="26" cy="32" r="1.5"/>',
+  c_globe2: '<circle cx="24" cy="24" r="17"/><path d="M7 24h34M24 7c6 6 6 28 0 34M24 7c-6 6-6 28 0 34"/>',
   /* Geräte (48er) */
   d_herd: '<path d="M10 20h28v14a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6z"/><path d="M6 20h36M4 24h6M38 24h6"/><path d="M18 14c-1-2 1-3 0-6M24 14c-1-2 1-3 0-6M30 14c-1-2 1-3 0-6"/>',
   d_ofen: '<rect x="7" y="6" width="34" height="36" rx="4"/><path d="M7 14h34"/><rect x="12" y="19" width="24" height="17" rx="2"/><circle cx="13" cy="10" r="1.4"/><circle cx="19" cy="10" r="1.4"/><path d="M28 10h8"/>',
@@ -61,6 +70,7 @@ window.ICONS = {
   d_dkt: '<path d="M10 22h28v14a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6z"/><path d="M8 22c2-6 9-9 16-9s14 3 16 9"/><path d="M22 13V8h4v5M38 18l6-2"/><circle cx="31" cy="15" r="2"/>',
   d_slow: '<path d="M8 22h32v12a8 8 0 0 1-8 8H16a8 8 0 0 1-8-8z"/><path d="M10 22c3-6 8-8 14-8s11 2 14 8"/><path d="M22 14v-3h4v3"/><rect x="19" y="29" width="10" height="5" rx="1"/>',
   d_grill: '<path d="M8 20h32a16 12 0 0 1-32 0z"/><path d="M8 20h32M14 14l2-4M24 14V9M34 14l-2-4"/><path d="M18 31l-4 11M30 31l4 11M24 32v10"/>',
+  d_sousvide: '<path d="M6 18h30v20a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4z"/><path d="M6 26c4-2 8 2 12 0s8 2 12 0 6 1 6 1"/><rect x="34" y="6" width="8" height="30" rx="3"/><rect x="13" y="28" width="14" height="9" rx="3"/>',
   d_kalt: '<path d="M6 26h36a18 15 0 0 1-36 0z"/><path d="M30 26l10-18M34 26l9-14"/><path d="M13 20l4-6 4 6"/>'
 };
 window.icon = function (name, cls, vb) {

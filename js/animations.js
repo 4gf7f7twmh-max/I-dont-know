@@ -292,6 +292,35 @@
       cols.map(function (c, i) { return '<rect class="' + c + ' ns lay" x="60" y="' + (122 - i * 14) + '" width="120" height="12" rx="2" style="animation-delay:' + (i * 0.5) + 's"/>'; }).join('');
   };
 
+  S.sousvide = function (o) {
+    var temp = o.c || 56;
+    return '<rect class="glass" x="34" y="44" width="150" height="100" rx="10"/><rect class="wat ns" x="37" y="62" width="144" height="79" rx="8" opacity=".8"/>' +
+      '<path class="wave" d="M40 62q12-5 24 0t24 0 24 0 24 0 24 0 18 0"/>' +
+      '<g class="bob"><rect class="bag" x="60" y="84" width="74" height="40" rx="8"/><rect class="meat ns" x="70" y="92" width="54" height="24" rx="9"/><line class="hl" x1="64" y1="90" x2="64" y2="118"/></g>' +
+      '<rect class="body" x="176" y="20" width="26" height="110" rx="8"/><rect class="scr" x="179" y="28" width="20" height="24" rx="3"/><text class="led sm" x="189" y="43">' + temp + '°</text>' +
+      '<g transform="translate(160 112)"><g class="spin" style="--d:1.2s"><path class="swirl" d="M-10 0a10 10 0 1 1 20 0"/></g></g>' +
+      bubbles(3, 'slow', 110);
+  };
+  S.torch = function () {
+    return '<ellipse class="plate" cx="104" cy="128" rx="64" ry="12"/><path class="dish" d="M64 100h80v22q0 6-6 6H70q-6 0-6-6z"/><ellipse class="cara" cx="104" cy="100" rx="40" ry="7"/>' +
+      '<g transform="rotate(-35 170 50)"><rect class="body" x="150" y="40" width="22" height="60" rx="6"/><rect class="met2" x="154" y="22" width="14" height="20" rx="3"/><rect class="met" x="158" y="8" width="6" height="16" rx="2"/>' +
+      '<g class="jetf"><path class="fl ns" d="M161 8c-6-10-2-24 0-34c2 10 6 24 0 34z" style="fill:#5aa8ff"/><path class="fl2 ns" d="M161 6c-3-6-1-14 0-20c1 6 3 14 0 20z" style="fill:#d6ecff"/></g></g>' +
+      '<path class="spark" d="M96 88l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/>';
+  };
+  S.pipe = function () {
+    var dots = [[70, 116, 6], [94, 112, 5], [116, 110, 4.2], [136, 110, 3.4], [154, 112, 2.6]];
+    return '<ellipse class="plate" cx="120" cy="118" rx="84" ry="22"/><ellipse class="plate2" cx="120" cy="116" rx="58" ry="13"/>' +
+      dots.map(function (d, i) { return '<circle class="pdot sauce" cx="' + d[0] + '" cy="' + d[1] + '" r="' + d[2] + '" style="animation-delay:' + (i * 0.45) + 's"/>'; }).join('') +
+      '<g class="pmove"><g class="squeeze"><path class="bagp" d="M120 18l26 8-22 62z"/><path class="met2" d="M121 86l4 10 3-8z"/></g></g>';
+  };
+  S.strain = function () {
+    return bowl('none') + '<g class="fill"><ellipse class="sauce" cx="120" cy="106" rx="52" ry="7"/></g>' +
+      '<path class="sieve" d="M70 62q50 52 100 0z"/><path class="mesh" d="M80 70q40 30 80 0M90 80q30 20 60 0M100 64v18M120 64v26M140 64v18"/>' +
+      '<rect class="metd" x="170" y="58" width="44" height="7" rx="3.5"/><ellipse class="sauce" cx="120" cy="64" rx="44" ry="5"/>' +
+      '<g class="ellx" style="--d:2s"><g transform="rotate(20 120 60)"><rect class="wood" x="116" y="8" width="8" height="52" rx="4"/><ellipse class="wood" cx="120" cy="62" rx="10" ry="5"/></g></g>' +
+      '<circle class="drip" cx="114" cy="92" r="2.4"/><circle class="drip" style="animation-delay:-.5s" cx="126" cy="94" r="2"/>';
+  };
+
   var ALIAS = { wok: 'flip', saute: 'fry', roast: 'bake', cook: 'boil', melt: 'stir', reduce: 'simmer', puree: 'blend', marinate: 'rest', proof: 'rest', form: 'shape', fill: 'shape', beat: 'mix' };
 
   window.ANIM = {
