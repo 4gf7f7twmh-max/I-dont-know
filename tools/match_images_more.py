@@ -18,10 +18,17 @@ _CF = os.environ.get('CACHE'); _C = json.load(open(_CF)) if _CF and os.path.exis
 def api(host, params):
     k = host + '?' + json.dumps(params, sort_keys=True)
     if k in _C: return _C[k]
-    d = _api(host, params); time.sleep(1.0)
+    for i in range(12):                       # bei Drosselung länger warten statt abbrechen
+        try:
+            d = _api(host, params, tries=4); break
+        except RuntimeError:
+            print('  gedrosselt, warte', 60 * (i + 1), 's', flush=True); time.sleep(60 * (i + 1))
+    else:
+        raise RuntimeError('API dauerhaft nicht erreichbar')
+    time.sleep(1.0)
     if _CF:
         _C[k] = d; _N[0] += 1
-        if _N[0] % 20 == 0: json.dump(_C, open(_CF, 'w'))
+        if _N[0] % 5 == 0: json.dump(_C, open(_CF, 'w'))
     return d
 def flush():
     if _CF: json.dump(_C, open(_CF, 'w'))
