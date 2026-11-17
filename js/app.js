@@ -98,7 +98,7 @@
   function webLite(e) {
     var devs = webDevs(e[9] || 'h');
     return {
-      id: e[0], n: e[1], c: e[2], k: e[3], v: e[4], minTime: e[5], lang: e[6], chunk: e[7], hasImg: e[8], web: true,
+      id: e[0], n: e[1], c: e[2], k: e[3], v: e[4], minTime: e[5], lang: e[6], chunk: e[7], hasImg: e[8], web: true, im: e[10] ? [e[10][0], '', '', e[10][1], ''] : null,
       devs: [devs[0]], needs: devs.slice(1), d: 2,
       _search: fold(e[1] + ' ' + e[3] + ' ' + ((CATS[e[2]] || {}).n || ''))
     };
@@ -113,6 +113,8 @@
   var THUMB = 'https://thumb.wikimedia.org/wikipedia/commons/thumb/';
   function photoUrl(im, w) {
     if (!im || !im[0]) return '';
+    if (/^https?:/.test(im[0]) && im[0].indexOf('/thumb/') < 0 && im[3]) /* kleines Original: passende Größe über Commons */
+      return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(String(im[3]).replace(/ /g, '_')) + '?width=' + (w || 960);
     var u = /^https?:/.test(im[0]) ? im[0] : THUMB + im[0];
     return w && w !== 960 ? u.replace(/\/960px-/, '/' + w + 'px-') : u;
   }

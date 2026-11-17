@@ -11,6 +11,7 @@ Eigenständige Kochbuch-Web-App für Handy, Tablet und Computer (iPhone, Android
 - 37 animierte Techniken: Jeder Schritt zeigt, was zu tun ist, mit Temperatur, Ofenmodus, Thermomix-Stufe, Linkslauf, Kerntemperatur und Timer
 - Sterneküche mit Anrichte-Plan: Ein Teller von oben, auf dem jede Komponente nacheinander erscheint, dazu eine Anrichte-Schule mit 12 Grundtechniken
 - Familien: Eine Person gründet eine Familie und lädt per Code, Link oder QR-Code ein. Alle Mitglieder sehen die gemeinsame Einkaufsliste live, mit Namen, wer was eingetragen oder abgehakt hat. Ohne Netz wird gespeichert und später nachgesendet.
+- Echte Fotos für 1751 Rezepte: 799 Wikibooks-Rezepte mit ihrem eigenen Foto, dazu Beispielfotos aus den passenden Wikipedia-Artikeln. Beispielfotos sind als solche markiert, jedes Foto nennt Fotograf und Lizenz. Im Kochmodus zeigt der letzte Schritt, wie das Gericht aussehen soll.
 - Kochmodus im Vollbild, mehrere Timer mit Ton und Vibration, Portionen umrechnen, Favoriten, Notizen, eigene Rezepte mit automatischer Schritterkennung, Hell und Dunkel
 - Suche auf Deutsch findet auch englische Rezepte („Hähnchen“ findet „Chicken“), dazu eine zusätzliche Live-Suche in TheMealDB
 
@@ -147,6 +148,17 @@ Wikitexte mit der MediaWiki-API laden (prop=revisions, 50 Seiten pro Anfrage) un
 python3 tools/import_wikibooks.py de_raw.json en_raw.json data/web
 ```
 
+## Fotos neu zuordnen
+
+`tools/match_images.py` ordnet Fotos von Wikimedia Commons zu: zuerst das eigene Foto eines Wikibooks-Rezepts, sonst das Hauptfoto des Wikipedia-Artikels mit exakt passendem Namen. Für die eigenen Rezepte sind die Artikel im Skript von Hand festgelegt. Ohne eindeutigen Treffer gibt es kein Foto. Die Bilder werden nicht kopiert, sondern direkt von Wikimedia geladen.
+
+```
+python3 tools/match_images.py builtin.json             # alles
+python3 tools/match_images.py builtin.json --nur-eigene  # nur die eigenen Rezepte
+```
+
+`builtin.json` ist eine Liste `[[id, name], …]` der eigenen Rezepte.
+
 ## Hinweise
 
 - Die eigenen Kreationen sind neue Kombinationen aus erprobten Techniken, als Ganzes nicht in einer Testküche nachgekocht.
@@ -154,3 +166,5 @@ python3 tools/import_wikibooks.py de_raw.json en_raw.json data/web
 - Heißluftfritteusen heizen je nach Modell unterschiedlich. Die Zeiten sind Richtwerte.
 - Thermomix ist eine Marke der Vorwerk SE & Co. KG. Diese App hat keine Verbindung zu Vorwerk.
 - Internet-Rezepte: Autorinnen und Autoren von Wikibooks, Lizenz CC BY-SA 4.0.
+- Fotos: Wikimedia Commons, Fotograf und Lizenz stehen bei jedem Foto auf der Rezeptseite.
+- Die eigenen Kreationen und einige Sterne-Teller haben kein Foto, weil es sie so nirgends gibt. Dort zeigen Animation und Anrichte-Plan, wie es aussehen soll.

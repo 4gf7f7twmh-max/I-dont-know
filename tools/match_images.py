@@ -55,20 +55,18 @@ def chunks(lst, n):
 
 # ---------- eigene Rezepte: Wikipedia-Artikel von Hand ----------
 BUILTIN = {
-    'pancakes': 'en:Pancake', 'ruehrei': 'en:Scrambled eggs', 'eier-kochen': 'en:Boiled egg', 'shakshuka': 'en:Shakshouka',
-    'overnight-oats': 'en:Overnight oats', 'french-toast': 'en:French toast', 'granola': 'en:Granola',
+    'pancakes': 'en:Pancake', 'ruehrei': 'en:Scrambled eggs', 'eier-kochen': 'en:Boiled egg', 'shakshuka': 'en:Shakshouka', 'french-toast': 'en:French toast', 'granola': 'en:Granola',
     'kuerbissuppe': 'en:Pumpkin soup', 'tomatensuppe': 'en:Tomato soup', 'kartoffelsuppe': 'de:Kartoffelsuppe', 
     'ramen': 'en:Ramen', 'pho': 'en:Pho', 'minestrone': 'en:Minestrone', 'gulaschsuppe': 'de:Gulaschsuppe', 'huehnersuppe': 'en:Chicken soup',
     'gazpacho': 'en:Gazpacho', 'misosuppe': 'en:Miso soup', 'zwiebelsuppe': 'en:French onion soup', 'tom-kha-gai': 'en:Tom kha kai',
     'carbonara': 'en:Carbonara', 'bolognese': 'en:Bolognese sauce', 'aglio-olio': 'en:Aglio e olio', 'lasagne': 'en:Lasagna',
     'mac-cheese': 'en:Macaroni and cheese', 'pesto': 'en:Pesto', 'cacio-e-pepe': 'en:Cacio e pepe', 'arrabbiata': 'en:Arrabbiata sauce',
     'kaesespaetzle': 'en:Käsespätzle', 'gnocchi': 'en:Gnocchi', 'pad-thai': 'en:Pad thai', 'spaghetti-pomodoro': 'en:Pasta al pomodoro',
-    'schnitzel': 'en:Wiener schnitzel', 'gulasch': 'en:Goulash', 'rouladen': 'en:Rouladen', 'brathaehnchen': 'en:Roast chicken',
+    'schnitzel': 'en:Wiener schnitzel', 'gulasch': 'en:Goulash', 'rouladen': 'de:Rinderroulade', 'brathaehnchen': 'en:Roast chicken',
     'chicken-wings': 'en:Buffalo wing', 'butter-chicken': 'en:Butter chicken', 'chili-con-carne': 'en:Chili con carne',
-    'schweinebraten': 'de:Schweinebraten', 'burger': 'en:Hamburger', 'pulled-pork': 'en:Pulled pork', 'koettbullar': 'en:Swedish meatballs',
+    'schweinebraten': 'de:Schweinebraten', 'burger': 'en:Hamburger', 'pulled-pork': 'en:Pulled pork', 'koettbullar': 'de:Köttbullar',
     'frikadellen': 'de:Frikadelle', 'boeuf-bourguignon': 'en:Beef bourguignon', 'steak': 'en:Steak', 'teriyaki-chicken': 'en:Teriyaki',
-    'gyros': 'en:Gyros', 'moussaka': 'en:Moussaka', 'paella': 'en:Paella', 'chicken-tacos': 'en:Taco',
-    'lachs': 'en:Salmon as food', 'fish-and-chips': 'en:Fish and chips', 'gambas-ajillo': 'en:Gambas al ajillo', 'sushi-maki': 'en:Sushi',
+    'gyros': 'en:Gyros', 'moussaka': 'en:Moussaka', 'paella': 'en:Paella', 'chicken-tacos': 'en:Taco', 'fish-and-chips': 'en:Fish and chips', 'gambas-ajillo': 'en:Gambas al ajillo', 'sushi-maki': 'en:Sushi',
     'green-curry': 'en:Green curry', 'ceviche': 'en:Ceviche',
     'chana-masala': 'en:Chana masala', 'falafel': 'en:Falafel', 'risotto': 'en:Risotto', 'ratatouille': 'en:Ratatouille',
     'pizza-margherita': 'en:Pizza Margherita', 'flammkuchen': 'en:Tarte flambée', 'quiche-lorraine': 'en:Quiche',
@@ -78,20 +76,19 @@ BUILTIN = {
     'caesar-salad': 'en:Caesar salad', 'griechischer-salat': 'en:Greek salad', 'caprese': 'en:Caprese salad', 'tabouleh': 'en:Tabbouleh',
     'kartoffelsalat': 'en:Potato salad', 'coleslaw': 'en:Coleslaw',
     'guacamole': 'en:Guacamole', 'hummus': 'en:Hummus', 'bruschetta': 'en:Bruschetta', 'fruehlingsrollen': 'en:Spring roll',
-    'tzatziki': 'en:Tzatziki', 'gyoza': 'en:Gyoza', 'empanadas': 'en:Empanada', 'nachos': 'en:Nachos',
-    'kaesekuchen': 'de:Käsekuchen', 'brownies': 'en:Chocolate brownie', 'apfelkuchen': 'de:Apfelkuchen', 'marmorkuchen': 'en:Marble cake',
+    'tzatziki': 'en:Tzatziki', 'empanadas': 'en:Empanada', 'nachos': 'en:Nachos',
+    'kaesekuchen': 'de:Käsekuchen', 'brownies': 'en:Chocolate brownie', 'marmorkuchen': 'en:Marble cake',
     'karottenkuchen': 'en:Carrot cake', 'schwarzwaelder': 'en:Black Forest gateau', 'bananenbrot': 'en:Banana bread',
-    'ny-cheesecake': 'en:Cheesecake', 'tarte-tatin': 'en:Tarte Tatin', 'streuselkuchen': 'en:Streuselkuchen', 'mug-cake': 'en:Mug cake',
-    'zitronenkuchen': 'de:Zitronenkuchen',
+    'ny-cheesecake': 'en:Cheesecake', 'tarte-tatin': 'en:Tarte Tatin', 'streuselkuchen': 'en:Streuselkuchen',
     'broetchen': 'en:Bread roll', 'focaccia': 'en:Focaccia', 'brezeln': 'en:Pretzel', 'zimtschnecken': 'en:Cinnamon roll', 'naan': 'en:Naan',
     'hefezopf': 'en:Hefezopf', 'topfbrot': 'en:No-knead bread', 'muffins': 'en:Muffin', 'cookies': 'en:Chocolate chip cookie',
     'croissants': 'en:Croissant', 'butterplaetzchen': 'de:Butterplätzchen', 'vanillekipferl': 'en:Vanillekipferl', 'pita': 'en:Pita',
     'tiramisu': 'en:Tiramisu', 'creme-brulee': 'en:Crème brûlée', 'panna-cotta': 'en:Panna cotta', 'mousse-au-chocolat': 'en:Chocolate mousse',
-    'kaiserschmarrn': 'en:Kaiserschmarrn', 'milchreis': 'en:Rice pudding', 'crepes': 'en:Crêpe', 'apfelstrudel': 'en:Apple strudel',
-    'churros': 'en:Churro', 'lava-cake': 'en:Lava cake', 'vanillepudding': 'de:Vanillepudding', 'baklava': 'en:Baklava',
+    'kaiserschmarrn': 'en:Kaiserschmarrn', 'milchreis': 'de:Milchreis', 'crepes': 'en:Crêpe', 'apfelstrudel': 'en:Apple strudel',
+    'churros': 'en:Churro', 'lava-cake': 'en:Lava cake', 'baklava': 'en:Baklava',
     'eis-ohne-maschine': 'en:Ice cream', 'mango-sticky-rice': 'en:Mango sticky rice',
     'st-beef-tatar': 'en:Steak tartare', 'st-entenbrust': 'en:Magret', 'st-ravioli': 'en:Ravioli', 'st-zitronentarte': 'en:Lemon tart',
-    'st-kuerbis-veloute': 'en:Pumpkin soup', 'st-beurre-blanc': 'en:Beurre blanc', 'st-hollandaise': 'en:Hollandaise sauce',
+    'st-kuerbis-veloute': 'en:Pumpkin soup', 'st-hollandaise': 'en:Hollandaise sauce',
 }
 
 # ---------- Namen säubern ----------
@@ -123,7 +120,7 @@ def candidates(name):
     return out[:7]
 
 # ---------- Wikipedia-Abfrage ----------
-def lookup(host, titles):
+def lookup(host, titles, strict=True):
     """titles -> {eingabetitel: (dateiname, thumburl)}"""
     res = {}
     for part in chunks(titles, 50):
@@ -135,7 +132,7 @@ def lookup(host, titles):
         pages = {pg['title']: pg for pg in q.get('pages', [])}
         for t in part:
             n0 = norm.get(t, t); x = redir.get(n0, n0); pg = pages.get(x)
-            if x != n0:
+            if strict and x != n0:
                 tl = x.lower()
                 if tl in GENERIC or not (set(re.findall(r'[a-zäöüß]{4,}', tl)) & set(re.findall(r'[a-zäöüß]{4,}', n0.lower()))): continue
             if not pg or pg.get('missing') or 'disambiguation' in (pg.get('pageprops') or {}): continue
@@ -241,9 +238,34 @@ def main():
         head = t[:a]
         open('data/web/' + f, 'w').write(head + 'KA_WEB_CHUNK(%d,' % num + json.dumps(arr, ensure_ascii=False, separators=(',', ':')) + ');\n')
     t = open('data/web/index.js').read(); idx = json.loads(t[t.index('=') + 1:t.rindex(';')])
-    for e in idx: e[8] = 1 if e[0] in chosen else 0
+    for e in idx:
+        e[8] = 1 if e[0] in chosen else 0
+        del e[10:]; e.append([entry(e[0])[0], entry(e[0])[3]] if e[0] in chosen else 0)
     open('data/web/index.js', 'w').write(t[:t.index('=') + 1] + json.dumps(idx, ensure_ascii=False, separators=(',', ':')) + ';\n')
     print('FERTIG eigene', len(bi), 'von', len(builtin), '| web', n_web, 'von', len(web), flush=True)
 
+def main_builtin():
+    """Nur die eigenen Rezepte neu abgleichen (handverlesene Titel, Weiterleitungen erlaubt)."""
+    builtin = json.load(open(sys.argv[1]))
+    out = {}
+    for lang in ('en', 'de'):
+        host = lang + '.wikipedia.org'
+        tmap = {}
+        for rid, _ in builtin:
+            if rid in BUILTIN and BUILTIN[rid].startswith(lang + ':'): tmap.setdefault(BUILTIN[rid].split(':', 1)[1], []).append(rid)
+        found = lookup(host, list(tmap), strict=False)
+        files = {img.replace('_', ' ') for img, th in found.values()}
+        cr = credits(host, list(files))
+        for t, (img, th) in found.items():
+            f = img.replace('_', ' ')
+            if f not in cr: continue
+            art, lic, thumb = cr[f]
+            for rid in tmap[t]: out[rid] = [short_path(thumb), art, lic, f, 'w']
+    with open('data/images.js', 'w') as fh:
+        fh.write('/* Fotos der eigenen Rezepte: [Vorschaupfad, Fotograf, Lizenz, Datei, Quelle w=Wikipedia-Beispielfoto]. Erzeugt von tools/match_images.py */\n')
+        fh.write('window.KA_IMG=' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + ';\n')
+    print('FERTIG eigene', len(out), 'von', len(builtin), '| ohne:', [r for r, _ in builtin if r not in out])
+
 if __name__ == '__main__':
-    main()
+    if '--nur-eigene' in sys.argv: main_builtin()
+    else: main()
