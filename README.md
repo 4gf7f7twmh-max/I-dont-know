@@ -111,6 +111,7 @@ server/server.js      Kochatlas-Server
 server/test.js        Servertest (npm test)
 docs/firestore.rules  Sicherheitsregeln für Firebase
 tools/import_wikibooks.py  Import der Wikibooks-Rezepte
+tools/match_images*.py     Fotozuordnung
 sw.js                 Offline-Modus
 ```
 
@@ -150,14 +151,22 @@ python3 tools/import_wikibooks.py de_raw.json en_raw.json data/web
 
 ## Fotos neu zuordnen
 
-`tools/match_images.py` ordnet Fotos von Wikimedia Commons zu: zuerst das eigene Foto eines Wikibooks-Rezepts, sonst das Hauptfoto des Wikipedia-Artikels mit exakt passendem Namen. Für die eigenen Rezepte sind die Artikel im Skript von Hand festgelegt. Ohne eindeutigen Treffer gibt es kein Foto. Die Bilder werden nicht kopiert, sondern direkt von Wikimedia geladen.
+Die Bilder werden nicht kopiert, sondern direkt von Wikimedia Commons geladen. Die Zuordnung läuft in drei Schritten:
+
+1. `tools/match_images.py`: zuerst das eigene Foto eines Wikibooks-Rezepts, sonst das Hauptfoto des Wikipedia-Artikels mit exakt passendem Namen.
+2. `tools/match_images_more.py`: für die übrigen Rezepte Teile des Namens als Wikipedia-Artikel („Easy Chicken Curry with Rice“ → „Chicken curry“), angenommen nur, wenn die Kurzbeschreibung des Artikels ein Gericht nennt. Ein einzelnes Allgemeinwort wie „Soup“ oder „Kuchen“ reicht nicht. Danach eine Suche in Commons, bei der der Dateiname die wichtigen Wörter des Rezeptnamens enthalten muss.
+3. `tools/fix_small_images.py`: stellt Fotos mit kleinem Original auf eine Vorschaugröße um, die Wikimedia ausliefert, und bereinigt Fotografennamen.
 
 ```
-python3 tools/match_images.py builtin.json             # alles
-python3 tools/match_images.py builtin.json --nur-eigene  # nur die eigenen Rezepte
+python3 tools/match_images.py builtin.json               # Schritt 1, alles
+python3 tools/match_images.py builtin.json --nur-eigene  # Schritt 1, nur die eigenen Rezepte
+CACHE=cache.json python3 tools/match_images_more.py      # Schritt 2
+python3 tools/fix_small_images.py                        # Schritt 3
 ```
 
-`builtin.json` ist eine Liste `[[id, name], …]` der eigenen Rezepte.
+`builtin.json` ist eine Liste `[[id, name], …]` der eigenen Rezepte. Für die eigenen Rezepte ohne passenden Wikipedia-Artikel sind die Fotos von Hand ausgesucht und stehen direkt in `data/images.js`.
+
+Eigene Rezepte, die man in der App anlegt, bekommen ein Foto über den Editor. Es wird auf 900 px verkleinert und nur auf dem jeweiligen Gerät gespeichert.
 
 ## Hinweise
 
@@ -167,4 +176,4 @@ python3 tools/match_images.py builtin.json --nur-eigene  # nur die eigenen Rezep
 - Thermomix ist eine Marke der Vorwerk SE & Co. KG. Diese App hat keine Verbindung zu Vorwerk.
 - Internet-Rezepte: Autorinnen und Autoren von Wikibooks, Lizenz CC BY-SA 4.0.
 - Fotos: Wikimedia Commons, Fotograf und Lizenz stehen bei jedem Foto auf der Rezeptseite.
-- Die eigenen Kreationen und einige Sterne-Teller haben kein Foto, weil es sie so nirgends gibt. Dort zeigen Animation und Anrichte-Plan, wie es aussehen soll.
+- Die eigenen Kreationen gibt es so nirgends als Foto. Sie zeigen ein Foto des nächstverwandten Gerichts, gekennzeichnet als „Ähnliches Gericht“ (bei den Miso-Karamell-Brownies zum Beispiel Brownies). Die Sterne-Teller zeigen Beispielfotos ähnlicher Teller, den genauen Aufbau zeigt der Anrichte-Plan.

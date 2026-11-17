@@ -12,7 +12,7 @@
   /* ---------- Speicher ---------- */
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem('ka_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set: function (k, v) { try { localStorage.setItem('ka_' + k, JSON.stringify(v)); } catch (e) { /* privat/blockiert */ } }
+    set: function (k, v) { try { localStorage.setItem('ka_' + k, JSON.stringify(v)); return true; } catch (e) { return false; /* privat, blockiert oder voll */ } }
   };
   var S = {
     favs: store.get('favs', []),
@@ -22,7 +22,7 @@
     theme: store.get('theme', 'auto'),
     onlyMine: store.get('onlyMine', true)
   };
-  var save = function (k) { store.set(k, S[k]); };
+  var save = function (k) { return store.set(k, S[k]); };
   var EXT_OK = true; /* externe Bilder (Wikimedia) und Online-Suche */
   var SY = window.SYNC;
   var F0 = function () { return { q: '', cat: '', dev: '', diet: '', time: 0, cuisine: '', sort: 'empf', src: '' }; };
@@ -113,15 +113,21 @@
   var THUMB = 'https://thumb.wikimedia.org/wikipedia/commons/thumb/';
   function photoUrl(im, w) {
     if (!im || !im[0]) return '';
+    if (/^data:/.test(im[0])) return im[0];
     if (/^https?:/.test(im[0]) && im[0].indexOf('/thumb/') < 0 && im[3]) /* kleines Original: passende Größe über Commons */
       return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(String(im[3]).replace(/ /g, '_')) + '?width=' + (w || 960);
     var u = /^https?:/.test(im[0]) ? im[0] : THUMB + im[0];
     return w && w !== 960 ? u.replace(/\/960px-/, '/' + w + 'px-') : u;
   }
+  function photoLabel(im) { return im[4] === 'u' ? 'Eigenes Foto' : im[4] === 'm' ? 'Foto von TheMealDB' : im[4] === 'a' ? 'Ähnliches Gericht' : (im[4] === 'w' || im[4] === 'c') ? 'Beispielfoto' : 'Foto aus dem Rezept'; }
   function photoTag(im, w, cls) { return '<img class="' + (cls || 'web-img') + '" src="' + esc(photoUrl(im, w)) + '" alt="" loading="lazy" decoding="async" onerror="this.remove()">'; }
   function photoCredit(im) {
     if (!im) return '';
-    return '<p class="photo-credit">' + (im[4] === 'w' ? '<b>Beispielfoto</b> des Gerichts, zeigt nicht genau diese Zubereitung. ' : '<b>Foto aus dem Rezept.</b> ') +
+    if (im[4] === 'u') return '<p class="photo-credit"><b>Eigenes Foto.</b> Nur auf diesem Gerät gespeichert.</p>';
+    if (im[4] === 'm') return '<p class="photo-credit">Foto: TheMealDB (themealdb.com)</p>';
+    var lead = im[4] === 'a' ? '<b>Ähnliches Gericht.</b> Dieses Rezept gibt es so nirgends als Foto, das Bild zeigt das nächstverwandte Gericht. ' :
+      (im[4] === 'w' || im[4] === 'c') ? '<b>Beispielfoto</b> des Gerichts, zeigt nicht genau diese Zubereitung. ' : '<b>Foto aus dem Rezept.</b> ';
+    return '<p class="photo-credit">' + lead +
       'Foto: ' + esc(im[1]) + ', <a href="https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(String(im[3]).replace(/ /g, '_')) + '" target="_blank" rel="noopener">' + esc(im[2]) + '</a>, Wikimedia Commons</p>';
   }
   function webRecipe(id) {
@@ -281,6 +287,18 @@
   function shopItems() { return SY.state().items; }
   function shopAdd(t, from) { SY.add([{ t: t, from: from || '' }]); return Promise.resolve(); }
 
+  /* Foto je Kategorie: ein typisches Gericht, sonst das erste Rezept der Kategorie mit Foto */
+  var CAT_PHOTO = { fruehstueck: 'pancakes', suppen: 'ramen', pasta: 'carbonara', fleisch: 'schnitzel', fisch: 'sushi-maki', veggie: 'bibimbap', beilagen: 'pommes',
+    salate: 'caesar-salad', snacks: 'bruschetta', kuchen: 'schwarzwaelder', brot: 'croissants', dessert: 'tiramisu', kreation: 'k-butter-chicken-pizza',
+    sterne: 'st-entenbrust', saucen: 'st-hollandaise' };
+  function catPhoto(c, A) {
+    if (!EXT_OK) return null;
+    var want = CAT_PHOTO[c], r = want && A.filter(function (x) { return x.id === want; })[0];
+    if (r && r.im) return r.im;
+    r = A.filter(function (x) { return x.c === c && x.im && x.im[0]; })[0];
+    return r ? r.im : null;
+  }
+
   /* ---------- Bausteine ---------- */
   function card(r) {
     var initials = r.n.replace(/[^A-Za-zÄÖÜäöü ]/g, '').split(' ').filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('');
@@ -336,7 +354,9 @@
       '<section class="sec"><div class="sec-h"><h2>Kategorien</h2><a href="#entdecken" data-act="fclear">Alle ansehen</a></div><div class="cat-grid">' +
       Object.keys(CATS).map(function (c) {
         var n = A.filter(function (r) { return r.c === c; }).length;
-        return '<a class="cat-tile" href="#entdecken" data-act="fcat" data-cat="' + c + '" style="--h:' + CATS[c].h + ';--tilt:' + ((hashStr(c) % 5) - 2) * 0.6 + 'deg">' + I('c_' + CATS[c].ic) + '<b>' + CATS[c].n + '</b><span>' + n.toLocaleString('de-DE') + ' Rezepte</span></a>';
+        var ph = catPhoto(c, A);
+        return '<a class="cat-tile' + (ph ? ' has-photo' : '') + '" href="#entdecken" data-act="fcat" data-cat="' + c + '" style="--h:' + CATS[c].h + ';--tilt:' + ((hashStr(c) % 5) - 2) * 0.6 + 'deg">' +
+          (ph ? photoTag(ph, 500, 'cat-img') + '<span class="cat-shade"></span>' : I('c_' + CATS[c].ic)) + '<b>' + CATS[c].n + '</b><span>' + n.toLocaleString('de-DE') + ' Rezepte</span></a>';
       }).join('') + '</div></section>' +
 
       (webDe.length ? '<section class="sec"><div class="sec-h"><h2>Aus dem deutschen Wikibooks-Kochbuch</h2><a href="#entdecken" data-act="fsrc" data-v="de">Alle</a></div><div class="hscroll">' + webDe.map(card).join('') + '</div></section>' : '') +
@@ -465,7 +485,7 @@
       (r.own ? '<a class="glass-btn" href="#bearbeiten-' + esc(r.id) + '" aria-label="Bearbeiten">' + I('edit') + '</a>' : '') +
       '<button class="glass-btn ' + (isFav(r.id) ? 'on' : '') + '" data-act="fav" data-id="' + esc(r.id) + '" aria-label="Favorit">' + I('heart') + '</button></span></div>' +
       '<div class="rhero-txt"><span class="pill">' + esc((CATS[r.c] || {}).n || '') + (r.k ? ' · ' + esc(r.k) : '') + '</span><h1>' + esc(r.n) + '</h1>' + (r.desc ? '<p>' + esc(r.desc) + '</p>' : '') + '</div>' +
-      (heroImg ? '<div class="rhero-art photo"><img src="' + esc(heroImg) + '" alt="' + esc(r.n) + '" decoding="async" onerror="this.parentNode.classList.add(\'noimg\');this.remove()"><span class="ph-badge">' + (r.im[4] === 'w' ? 'Beispielfoto' : 'Foto aus dem Rezept') + '</span></div>' :
+      (heroImg ? '<div class="rhero-art photo"><img src="' + esc(heroImg) + '" alt="' + esc(r.n) + '" decoding="async" onerror="this.parentNode.classList.add(\'noimg\');this.remove()"><span class="ph-badge">' + photoLabel(r.im) + '</span></div>' :
         '<div class="rhero-art" aria-hidden="true">' + (heroStep ? ANIM.scene(heroStep.a, heroStep.o, ctx).replace('class="scene', 'class="scene play force') : '') + '</div>') + '</div>' +
       (heroImg ? photoCredit(r.im) : '') +
       '<div class="rstats"><div class="rstat">' + I('clock') + '<b>' + fmtTime(m.t) + '</b><span>Gesamtzeit</span></div><div class="rstat">' + I('bars') + '<b>' + DIFF[r.d || 1] + '</b><span>Schwierigkeit</span></div>' +
@@ -543,7 +563,7 @@
     $('#cook').innerHTML = '<div class="cook-top"><button class="icon-btn" data-act="cookclose" aria-label="Schließen">' + I('close') + '</button><div class="ttl"><b>' + esc(r.n) + '</b><small>' + esc(DEV[c.dev].n) + ' · Schritt ' + (c.i + 1) + ' von ' + n + '</small></div>' +
       '<button class="btn sm" data-act="cookings">' + I('list', 'sm') + 'Zutaten</button></div><div class="cook-prog"><i style="width:' + ((c.i + 1) / n * 100) + '%"></i></div>' +
       (c.ings ? '<div class="cook-ings card-box"><ul class="ing-list">' + (r.ing || []).map(function (x) { if (x[0] === '#') return '<li class="grp">' + esc(x.slice(1)) + '</li>'; var y = splitIng(x, f); return '<li><span class="t">' + (y.q ? '<span class="q">' + esc(y.q) + '</span> ' : '') + esc(y.t) + '</span></li>'; }).join('') + '</ul></div>' : '') +
-      '<div class="cook-body">' + (c.i === n - 1 && r.im && EXT_OK ? '<div class="cook-goal"><img src="' + esc(photoUrl(r.im, 960)) + '" alt="So soll es aussehen" onerror="this.parentNode.remove()"><span>So soll es aussehen' + (r.im[4] === 'w' ? ' (Beispielfoto)' : '') + '</span></div>' :
+      '<div class="cook-body">' + (c.i === n - 1 && r.im && EXT_OK ? '<div class="cook-goal"><img src="' + esc(photoUrl(r.im, 960)) + '" alt="So soll es aussehen" onerror="this.parentNode.remove()"><span>So soll es aussehen' + (r.im[4] && r.im[4] !== 'r' ? ' (' + photoLabel(r.im) + ')' : '') + '</span></div>' :
         '<div class="cook-stage">' + ANIM.scene(s.a, s.o, { item: itemFor(r) }).replace('class="scene', 'class="scene play force') + '</div>') +
       '<div class="cook-step"><div class="step-n"><span class="num">' + (c.i + 1) + '</span><span class="phase">' + esc(ACTIONS[ANIM.norm(s.a)] || '') + ' · ' + esc(s.ph) + '</span></div><p>' + esc(s.t) + '</p>' + paramsHTML(s.o, r.n + ' · Schritt ' + (c.i + 1)) + '</div></div>' +
       '<div class="cook-nav"><button class="btn" data-act="cookprev" ' + (c.i === 0 ? 'disabled style="opacity:.4"' : '') + '>' + I('back') + 'Zurück</button>' +
@@ -696,14 +716,32 @@
   }
 
   /* ---------- Editor ---------- */
+  var editPhoto = null;
+  function editPhotoHTML() {
+    return editPhoto ? '<img src="' + esc(photoUrl(editPhoto, 500)) + '" alt="Foto des Rezepts"><button type="button" class="btn" data-act="ephotodel">' + I('trash', 'sm') + 'Foto entfernen</button>' : '<span class="muted">Noch kein Foto</span>';
+  }
+  function shrinkPhoto(file, cb) {
+    var url = URL.createObjectURL(file), img = new Image();
+    img.onload = function () {
+      var s = Math.min(1, 900 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      cb(c.toDataURL('image/jpeg', 0.78));
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); toast('Bild konnte nicht gelesen werden'); };
+    img.src = url;
+  }
   function vEdit(id) {
     var r = id ? S.own.filter(function (x) { return x.id === id; })[0] : null;
     if (id && !r) return '<div class="empty"><h3>Rezept nicht gefunden</h3></div>';
+    editPhoto = r && r.im ? r.im : null;
     r = r || { n: '', desc: '', c: 'veggie', k: '', p: 4, d: 1, v: 0, ing: [], prep: [], m: {} };
     var toTxt = function (arr) { return (arr || []).map(function (s) { return '[' + (ACTIONS[s[0]] || s[0]) + '] ' + s[1]; }).join('\n'); };
     return '<div class="page-h"><h1>' + (id ? 'Rezept bearbeiten' : 'Neues Rezept') + '</h1></div><form class="card-box" data-form="edit" data-id="' + esc(id || '') + '">' +
       '<div class="two-col"><div><div class="field"><label for="e_n">Name</label><input class="input" id="e_n" required value="' + esc(r.n) + '"></div>' +
       '<div class="field"><label for="e_desc">Kurzbeschreibung</label><input class="input" id="e_desc" value="' + esc(r.desc) + '"></div>' +
+      '<div class="field"><label for="e_photo">Foto</label><div class="photo-pick" id="e_photo_box">' + editPhotoHTML() + '</div>' +
+      '<input class="input" id="e_photo" type="file" accept="image/*" data-change="photo"><small>Wird verkleinert und nur auf diesem Gerät gespeichert.</small></div>' +
       '<div class="two-col" style="gap:10px"><div class="field"><label for="e_c">Kategorie</label><select class="input" id="e_c">' + Object.keys(CATS).map(function (c) { return '<option value="' + c + '"' + (r.c === c ? ' selected' : '') + '>' + CATS[c].n + '</option>'; }).join('') + '</select></div>' +
       '<div class="field"><label for="e_k">Land / Küche</label><input class="input" id="e_k" value="' + esc(r.k) + '" placeholder="z. B. Italien"></div>' +
       '<div class="field"><label for="e_p">Portionen</label><input class="input" id="e_p" type="number" min="1" max="99" value="' + (r.p || 4) + '"></div>' +
@@ -738,9 +776,14 @@
     });
     if (!r.n) { toast('Bitte einen Namen eingeben'); return; }
     if (!Object.keys(r.m).length) { toast('Mindestens ein Gerät mit Schritten anlegen'); return; }
-    var i = S.own.findIndex(function (x) { return x.id === id; });
+    if (editPhoto) r.im = editPhoto;
+    var i = S.own.findIndex(function (x) { return x.id === id; }), old = i >= 0 ? S.own[i] : null;
     if (i >= 0) S.own[i] = r; else S.own.push(r);
-    save('own'); resetAll(); delete ui.rec[id];
+    if (!save('own')) {
+      if (i >= 0) S.own[i] = old; else S.own.pop();
+      toast(r.im && r.im[4] === 'u' ? 'Speicher voll: Rezept mit kleinerem oder ohne Foto speichern' : 'Speichern nicht möglich (Speicher voll oder privates Fenster)'); return;
+    }
+    resetAll(); delete ui.rec[id];
     toast('Gespeichert'); location.hash = '#r-' + id;
   }
 
@@ -1000,8 +1043,10 @@
       online.area = el.dataset.v; online.areaLabel = AREAS[el.dataset.v]; $$('[data-act="warea"]').forEach(function (b) { b.classList.toggle('on', b === el); });
       worldLoad('filter.php?a=' + encodeURIComponent(el.dataset.v), function (j) { return (j.meals || []).map(function (m) { m.strArea = el.dataset.v; return m; }); });
     },
+    ephotodel: function () { editPhoto = null; var b = $('#e_photo_box'); if (b) b.innerHTML = editPhotoHTML(); },
     wsave: function () {
       var r = JSON.parse(JSON.stringify(online.meal)); r.id = 'own-' + Date.now().toString(36); r.own = true; delete r._n;
+      if (online.mealImg) r.im = [online.mealImg, 'TheMealDB', '', '', 'm'];
       S.own.push(r); save('own'); resetAll(); toast('In Meine Rezepte übernommen'); location.hash = '#r-' + r.id;
     }
   };
@@ -1022,6 +1067,10 @@
     var k = e.target.dataset.change; if (!k) return;
     if (k === 'fk') { ui.f.cuisine = e.target.value; ui.limit = 60; renderResults(); }
     if (k === 'fs') { ui.f.sort = e.target.value; renderResults(); }
+    if (k === 'photo') {
+      var pf = e.target.files[0]; if (!pf) return;
+      shrinkPhoto(pf, function (d) { editPhoto = [d, '', '', '', 'u']; var b = $('#e_photo_box'); if (b) b.innerHTML = editPhotoHTML(); e.target.value = ''; });
+    }
     if (k === 'fm') { S.onlyMine = e.target.checked; save('onlyMine'); ui.limit = 60; renderResults(); }
     if (k === 'import') {
       var file = e.target.files[0]; if (!file) return;
