@@ -8,12 +8,12 @@ Ein Foto fliegt raus, wenn
 3. die Datei auf Commons in keiner Essens-Kategorie liegt oder in einer Kategorie für Personen, Orte,
    Tiere, Pflanzen, Gebäude, Werbung usw. (Suchtreffer „Sambar“ = Hirsch, „Cobbler“ = Schuster).
 
-Eingabe ist das Protokoll eines Laufs (MATCH_LOG von match_images_more.py oder match_images_round3.py).
+Eingabe ist das Protokoll eines Laufs (MATCH_LOG von match_images_more.py). match_images_round3.py ruft die Prüfung selbst auf.
 Aufruf: CACHE=cache.json python3 tools/photo_filter.py protokoll.json [--trocken] [--liste abgelehnt.txt]
 """
 import json, os, re, sys
 sys.path.insert(0, os.path.dirname(__file__))
-from match_images import chunks
+from match_images import chunks, BAD_NAME
 from match_images_more import api, flush, fold, tokens, clean_name
 
 BAD_TITLE = set(fold(t) for t in (
@@ -144,6 +144,10 @@ def judge(log):
     bad = {}
     for rid, v in log.items():
         host, f, src, title, name = v[:5]
+        if src in ('m', 'o'):              # TheMealDB, Openverse: keine Commons-Kategorien, nur der Fototitel zählt
+            why = 'anderes Motiv' if FILE_BAD.search(title) or other_dish(name, title) or BAD_NAME.search(title) else ''
+            if why and (name, f) not in MANUAL_OK: bad[rid] = why
+            continue
         why = 'von Hand' if (name, f) in MANUAL_BAD else (title_bad(title, name) if title else '')
         if not why and not title and (FILE_BAD.search(f) or other_dish(name, f)):
             why = 'anderes Motiv'

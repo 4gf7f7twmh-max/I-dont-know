@@ -16,6 +16,9 @@ sys.path.insert(0, os.path.dirname(__file__))
 from match_images import credits, short_path, GOOD_EXT, BAD_NAME, chunks, UA
 from match_images_more import api, flush, tokens, fold, stem, clean_name, content_words, subphrases, DISH, NOT_DISH, GENERIC, _C, _CF
 from fix_small_images import clean_artist
+import photo_filter
+
+TITLE = {}   # rid -> Titel der Fundstelle (Wikidata-Label, TheMealDB-Name, Openverse-Fototitel) für photo_filter
 
 OV_LIC = {'cc0': 'CC0', 'pdm': 'gemeinfrei', 'by': 'CC BY', 'by-sa': 'CC BY-SA', 'by-nd': 'CC BY-ND', 'by-nc': 'CC BY-NC',
           'by-nc-sa': 'CC BY-NC-SA', 'by-nc-nd': 'CC BY-NC-ND'}
@@ -44,7 +47,7 @@ def wikidata_round(todo, de):
                 if not any(fold(n) == fold(text) for n in names): continue
                 if not DISH.search(desc) or NOT_DISH.search(desc): continue
                 if (fold(label) in GENERIC or stem(fold(label)) in GENERIC) and len(content_words(text)) > 1: continue
-                hits[rid] = e['id']; break
+                hits[rid] = e['id']; TITLE[rid] = label; break
             if rid in hits: break
         if k % 200 == 0: print('  Wikidata', k, 'von', len(todo), '| Treffer', len(hits), flush=True)
     files = {}
@@ -91,7 +94,7 @@ def mealdb_round(todo, de):
         for m in (_C[key].get('meals') or []):
             name = m.get('strMeal') or ''
             if overlap_ok(want, tokens(name)) and overlap_ok(tokens(name), want) and m.get('strMealThumb'):
-                found[rid] = [m['strMealThumb'], 'TheMealDB', '', 'https://www.themealdb.com/meal/' + m['idMeal'], 'm']; break
+                found[rid] = [m['strMealThumb'], 'TheMealDB', '', 'https://www.themealdb.com/meal/' + m['idMeal'], 'm']; TITLE[rid] = name; break
         if k % 200 == 0: print('  TheMealDB', k, 'von', len(todo), '| Treffer', len(found), flush=True)
     flush()
     return found
@@ -137,7 +140,7 @@ def openverse_round(todo, de, mx):
             if not overlap_ok(want, tokens(title)) and not (len(set(want)) >= 2 and overlap_ok(want, have) and overlap_ok(want[-1:], tokens(title))):
                 continue
             lic = OV_LIC[x['license']] + (' ' + x['license_version'] if x.get('license_version') and x['license'] not in ('cc0', 'pdm') else '')
-            found[rid] = [x['url'], clean_artist(x.get('creator') or ''), lic, x['foreign_landing_url'], 'o']; break
+            found[rid] = [x['url'], clean_artist(x.get('creator') or ''), lic, x['foreign_landing_url'], 'o']; TITLE[rid] = title; break
     print('  Openverse: neue Anfragen', asked, '| Treffer', len(found), flush=True)
     return found
 
@@ -179,6 +182,18 @@ def main():
         new.update(openverse_round(rest, de, mx))
     flush()
 
+    # Prüfung wie in photo_filter.py; Protokoll im selben Format [host, datei, quelle, titel, name]
+    HOST = {'d': 'commons.wikimedia.org', 'c': 'commons.wikimedia.org', 'm': 'www.themealdb.com', 'o': 'api.openverse.org'}
+    log = {rid: [HOST[im[4]], im[3], im[4], TITLE.get(rid, ''), web[rid]['n']] for rid, im in new.items()}
+    bad = photo_filter.judge(log)
+    print('Prüfung: abgelehnt', len(bad), 'von', len(new), flush=True)
+    if os.environ.get('MATCH_LOG'):
+        json.dump(log, open(os.environ['MATCH_LOG'], 'w'), ensure_ascii=False)
+        with open(os.environ['MATCH_LOG'] + '.abgelehnt.txt', 'w') as out:
+            for rid, why in sorted(bad.items(), key=lambda a: a[1]):
+                out.write('%s | %s | %s | %s\n' % (log[rid][4], log[rid][3], log[rid][1], why))
+    for rid in bad: del new[rid]
+
     for f in cf:
         head, num, arr = data[f]
         for r in arr:
@@ -191,8 +206,6 @@ def main():
         del e[10:]; e.append([im[0], im[3], im[4]] if im else 0)
     open('data/web/index.js', 'w').write(t[:t.index('=') + 1] + json.dumps(idx, ensure_ascii=False, separators=(',', ':')) + ';\n')
     print('FERTIG neu:', len(new), '| mit Foto gesamt:', len(imgs), 'von', len(web), flush=True)
-    log = os.environ.get('MATCH_LOG')
-    if log: json.dump({rid: v + [web[rid]['n']] for rid, v in new.items()}, open(log, 'w'), ensure_ascii=False)
 
 if __name__ == '__main__':
     main()

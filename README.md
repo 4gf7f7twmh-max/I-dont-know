@@ -112,6 +112,7 @@ server/test.js        Servertest (npm test)
 docs/firestore.rules  Sicherheitsregeln für Firebase
 tools/import_wikibooks.py  Import der Wikibooks-Rezepte
 tools/match_images*.py     Fotozuordnung
+tools/photo_filter.py      Prüfung der gefundenen Fotos
 sw.js                 Offline-Modus
 ```
 
@@ -151,17 +152,21 @@ python3 tools/import_wikibooks.py de_raw.json en_raw.json data/web
 
 ## Fotos neu zuordnen
 
-Die Bilder werden nicht kopiert, sondern direkt von Wikimedia Commons geladen. Die Zuordnung läuft in drei Schritten:
+Die Bilder werden nicht kopiert, sondern direkt von der Quelle geladen (Wikimedia Commons, TheMealDB, Flickr über Openverse). Die Zuordnung läuft in fünf Schritten:
 
 1. `tools/match_images.py`: zuerst das eigene Foto eines Wikibooks-Rezepts, sonst das Hauptfoto des Wikipedia-Artikels mit exakt passendem Namen.
 2. `tools/match_images_more.py`: für die übrigen Rezepte Teile des Namens als Wikipedia-Artikel („Easy Chicken Curry with Rice“ → „Chicken curry“), angenommen nur, wenn die Kurzbeschreibung des Artikels ein Gericht nennt. Ein einzelnes Allgemeinwort wie „Soup“ oder „Kuchen“ reicht nicht. Danach eine Suche in Commons, bei der der Dateiname die wichtigen Wörter des Rezeptnamens enthalten muss.
-3. `tools/fix_small_images.py`: stellt Fotos mit kleinem Original auf eine Vorschaugröße um, die Wikimedia ausliefert, und bereinigt Fotografennamen.
+3. `tools/photo_filter.py`: prüft die Treffer aus Schritt 2 und entfernt Fehlgriffe. Verworfen werden Artikel über Zutaten, Geräte oder Begriffe („Potato“, „Slow cooker“, „Wine“), Titel, die im Rezeptnamen nur hinter „with“ oder „mit“ stehen, Commons-Dateien ohne Essens-Kategorie oder in Kategorien für Personen, Orte, Tiere, Werbung usw., und Dateien, deren Name ein anderes Gericht als Hauptmotiv nennt. Eine kurze Handliste fängt Weiterleitungen auf ein falsches Gericht ab.
+4. `tools/match_images_round3.py`: für die dann noch übrigen Rezepte Wikidata (gleicher Name, Beschreibung nennt ein Gericht), Commons mit dem englischen Namen (deutsche Rezepte über `tools/de_en_names.tsv`), TheMealDB und Openverse (Flickr und andere Plattformen, nur Creative-Commons- und gemeinfreie Fotos). Openverse erlaubt ohne Anmeldung 200 Anfragen am Tag; mit demselben Zwischenspeicher macht ein zweiter Lauf am nächsten Tag weiter. Die Prüfung aus Schritt 3 läuft am Ende automatisch.
+5. `tools/fix_small_images.py`: stellt Fotos mit kleinem Original auf eine Vorschaugröße um, die Wikimedia ausliefert, und bereinigt Fotografennamen.
 
 ```
-python3 tools/match_images.py builtin.json               # Schritt 1, alles
-python3 tools/match_images.py builtin.json --nur-eigene  # Schritt 1, nur die eigenen Rezepte
-CACHE=cache.json python3 tools/match_images_more.py      # Schritt 2
-python3 tools/fix_small_images.py                        # Schritt 3
+python3 tools/match_images.py builtin.json                  # Schritt 1, alles
+python3 tools/match_images.py builtin.json --nur-eigene     # Schritt 1, nur die eigenen Rezepte
+CACHE=cache.json MATCH_LOG=r2.json python3 tools/match_images_more.py   # Schritt 2
+CACHE=cache.json python3 tools/photo_filter.py r2.json      # Schritt 3 (--trocken zeigt nur an)
+CACHE=cache.json python3 tools/match_images_round3.py       # Schritt 4
+python3 tools/fix_small_images.py                           # Schritt 5
 ```
 
 `builtin.json` ist eine Liste `[[id, name], …]` der eigenen Rezepte. Für die eigenen Rezepte ohne passenden Wikipedia-Artikel sind die Fotos von Hand ausgesucht und stehen direkt in `data/images.js`.
@@ -175,5 +180,5 @@ Eigene Rezepte, die man in der App anlegt, bekommen ein Foto über den Editor. E
 - Heißluftfritteusen heizen je nach Modell unterschiedlich. Die Zeiten sind Richtwerte.
 - Thermomix ist eine Marke der Vorwerk SE & Co. KG. Diese App hat keine Verbindung zu Vorwerk.
 - Internet-Rezepte: Autorinnen und Autoren von Wikibooks, Lizenz CC BY-SA 4.0.
-- Fotos: Wikimedia Commons, Fotograf und Lizenz stehen bei jedem Foto auf der Rezeptseite.
+- Fotos: Wikimedia Commons, TheMealDB und Fotoplattformen wie Flickr (über Openverse). Fotograf, Lizenz und Quelle stehen bei jedem Foto auf der Rezeptseite.
 - Die eigenen Kreationen gibt es so nirgends als Foto. Sie zeigen ein Foto des nächstverwandten Gerichts, gekennzeichnet als „Ähnliches Gericht“ (bei den Miso-Karamell-Brownies zum Beispiel Brownies). Die Sterne-Teller zeigen Beispielfotos ähnlicher Teller, den genauen Aufbau zeigt der Anrichte-Plan.
