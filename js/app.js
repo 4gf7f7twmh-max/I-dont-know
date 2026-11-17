@@ -54,6 +54,7 @@
   /* ---------- Eingebaute Rezepte ---------- */
   function norm(r) {
     if (r._n) return r;
+    if (!r.im && window.KA_IMG && window.KA_IMG[r.id]) r.im = window.KA_IMG[r.id];
     r.m = r.m || {};
     r.devs = Object.keys(r.m);
     r.minTime = Infinity;
@@ -108,7 +109,19 @@
     return _lite;
   }
   function liteById(id) { var r = all().filter(function (x) { return x.id === id; })[0]; if (r) return r; var e = WEB.idx[id]; return e ? webLite(e) : null; }
-  function imgUrl(name, w) { return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(name.replace(/ /g, '_')) + '?width=' + (w || 640); }
+  /* Fotos: [Vorschaupfad, Fotograf, Lizenz, Datei, Quelle] – Quelle 'r' = Foto aus dem Rezept, 'w' = Beispielfoto aus Wikipedia */
+  var THUMB = 'https://thumb.wikimedia.org/wikipedia/commons/thumb/';
+  function photoUrl(im, w) {
+    if (!im || !im[0]) return '';
+    var u = /^https?:/.test(im[0]) ? im[0] : THUMB + im[0];
+    return w && w !== 960 ? u.replace(/\/960px-/, '/' + w + 'px-') : u;
+  }
+  function photoTag(im, w, cls) { return '<img class="' + (cls || 'web-img') + '" src="' + esc(photoUrl(im, w)) + '" alt="" loading="lazy" decoding="async" onerror="this.remove()">'; }
+  function photoCredit(im) {
+    if (!im) return '';
+    return '<p class="photo-credit">' + (im[4] === 'w' ? '<b>Beispielfoto</b> des Gerichts, zeigt nicht genau diese Zubereitung. ' : '<b>Foto aus dem Rezept.</b> ') +
+      'Foto: ' + esc(im[1]) + ', <a href="https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(String(im[3]).replace(/ /g, '_')) + '" target="_blank" rel="noopener">' + esc(im[2]) + '</a>, Wikimedia Commons</p>';
+  }
   function webRecipe(id) {
     if (WEB.rec[id]) return WEB.rec[id];
     var x = WEB.raw[id], e = WEB.idx[id];
@@ -118,7 +131,7 @@
     var est = steps.reduce(function (s, st) { return s + (st[2].t || 0); }, 0);
     var r = {
       id: id, n: x.n, c: x.c, k: x.k || '', p: x.p || 4, d: x.d || 2, v: x.v || 0, desc: x.desc, ing: x.g, tips: x.x,
-      web: true, lang: x.l, img: x.img, srcUrl: x.u, needs: devs.slice(1),
+      web: true, lang: x.l, im: x.im, srcUrl: x.u, needs: devs.slice(1),
       src: 'Wikibooks-Kochbuch (' + (x.l === 'de' ? 'deutsch' : 'englisch') + '), Lizenz CC BY-SA', m: {}
     };
     r.m[prim] = { t: x.t || Math.max(15, Math.round(est + 10)), s: steps };
@@ -271,8 +284,8 @@
     var initials = r.n.replace(/[^A-Za-zÄÖÜäöü ]/g, '').split(' ').filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('');
     var badge = r.c === 'sterne' ? '<span class="badge sterne-badge">' + I('star', 'sm') + ' Sterneküche</span>' : r.c === 'kreation' ? '<span class="badge k">Kreation</span>' : r.own ? '<span class="badge">Eigenes</span>' :
       r.web ? '<span class="badge">' + (r.lang === 'de' ? 'Internet · DE' : 'Internet · EN') + '</span>' : r.v === 2 ? '<span class="badge">Vegan</span>' : r.v === 1 ? '<span class="badge">Vegetarisch</span>' : '';
-    var img = '';
-    if (EXT_OK && r.web && r.hasImg) { var x = WEB.raw[r.id]; if (x && x.img) img = '<img class="web-img" src="' + esc(imgUrl(x.img, 480)) + '" alt="" loading="lazy" onerror="this.remove()">'; }
+    var img = '', im = r.im || (r.web && WEB.raw[r.id] && WEB.raw[r.id].im);
+    if (EXT_OK && im) img = photoTag(im, 500);
     return '<a class="rcard" href="#r-' + esc(r.id) + '" style="--h:' + hue(r) + '">' +
       '<div class="rvis">' + I('c_' + (CATS[r.c] || CATS.welt).ic) + '<span class="initials">' + esc(initials) + '</span>' + img + badge +
       '<button class="fav-btn ' + (isFav(r.id) ? 'on' : '') + '" data-act="fav" data-id="' + esc(r.id) + '" aria-label="Favorit">' + I('heart') + '</button></div>' +
@@ -399,7 +412,7 @@
     var need = {};
     if (!EXT_OK) return;
     list.forEach(function (r) { if (r.web && r.hasImg && !WEB.raw[r.id]) need[r.chunk] = 1; });
-    Object.keys(need).slice(0, 3).forEach(function (n) { loadChunk(+n).then(function () { list.forEach(function (r) { if (r.web && r.hasImg) { var c = $('.rcard[href="#r-' + r.id + '"] .rvis'); var x = WEB.raw[r.id]; if (c && x && x.img && !$('img', c)) c.insertAdjacentHTML('beforeend', '<img class="web-img" src="' + esc(imgUrl(x.img, 480)) + '" alt="" loading="lazy" onerror="this.remove()">'); } }); }).catch(function () {}); });
+    Object.keys(need).slice(0, 4).forEach(function (n) { loadChunk(+n).then(function () { list.forEach(function (r) { if (r.web && r.hasImg) { var c = $('.rcard[href="#r-' + r.id + '"] .rvis'); var x = WEB.raw[r.id]; if (c && x && x.im && !$('img', c)) c.insertAdjacentHTML('beforeend', photoTag(x.im, 500)); } }); }).catch(function () {}); });
   }
 
   /* ---------- Ansicht: Rezept ---------- */
@@ -442,15 +455,17 @@
       return '<div class="step"><div class="stage" data-act="force">' + ANIM.scene(s.a, s.o, ctx) + '<span class="alabel">' + esc(ACTIONS[ANIM.norm(s.a)] || '') + '</span></div><div>' +
         '<div class="step-n"><span class="num">' + String(i + 1).padStart(2, '0') + '</span><span class="phase">' + esc(s.ph) + '</span></div><p>' + esc(s.t) + '</p>' + paramsHTML(s.o, r.n + ' · Schritt ' + (i + 1)) + '</div></div>';
     }).join('');
-    var heroImg = EXT_OK && r.img ? '--img:url(' + esc(imgUrl(r.img, 1400)) + ')' : '';
+    var heroImg = EXT_OK && r.im ? photoUrl(r.im, 960) : '';
     var heroStep = steps.filter(function (x) { return ['prep', 'chop', 'serve', 'season'].indexOf(ANIM.norm(x.a)) < 0; })[0] || steps[0];
     return '<article>' +
-      '<div class="rhero' + (heroImg ? ' img' : '') + '" style="--h:' + hue(r) + ';' + heroImg + '"><div class="rhero-top"><button class="glass-btn" data-act="back" aria-label="Zurück">' + I('back') + '</button>' +
+      '<div class="rhero" style="--h:' + hue(r) + '"><div class="rhero-top"><button class="glass-btn" data-act="back" aria-label="Zurück">' + I('back') + '</button>' +
       '<span style="display:flex;gap:8px"><button class="glass-btn" data-act="share" aria-label="Teilen">' + I('share') + '</button>' +
       (r.own ? '<a class="glass-btn" href="#bearbeiten-' + esc(r.id) + '" aria-label="Bearbeiten">' + I('edit') + '</a>' : '') +
       '<button class="glass-btn ' + (isFav(r.id) ? 'on' : '') + '" data-act="fav" data-id="' + esc(r.id) + '" aria-label="Favorit">' + I('heart') + '</button></span></div>' +
       '<div class="rhero-txt"><span class="pill">' + esc((CATS[r.c] || {}).n || '') + (r.k ? ' · ' + esc(r.k) : '') + '</span><h1>' + esc(r.n) + '</h1>' + (r.desc ? '<p>' + esc(r.desc) + '</p>' : '') + '</div>' +
-      (heroImg ? '' : '<div class="rhero-art" aria-hidden="true">' + (heroStep ? ANIM.scene(heroStep.a, heroStep.o, ctx).replace('class="scene', 'class="scene play force') : '') + '</div>') + '</div>' +
+      (heroImg ? '<div class="rhero-art photo"><img src="' + esc(heroImg) + '" alt="' + esc(r.n) + '" decoding="async" onerror="this.parentNode.classList.add(\'noimg\');this.remove()"><span class="ph-badge">' + (r.im[4] === 'w' ? 'Beispielfoto' : 'Foto aus dem Rezept') + '</span></div>' :
+        '<div class="rhero-art" aria-hidden="true">' + (heroStep ? ANIM.scene(heroStep.a, heroStep.o, ctx).replace('class="scene', 'class="scene play force') : '') + '</div>') + '</div>' +
+      (heroImg ? photoCredit(r.im) : '') +
       '<div class="rstats"><div class="rstat">' + I('clock') + '<b>' + fmtTime(m.t) + '</b><span>Gesamtzeit</span></div><div class="rstat">' + I('bars') + '<b>' + DIFF[r.d || 1] + '</b><span>Schwierigkeit</span></div>' +
       '<div class="rstat">' + I('list') + '<b>' + steps.length + '</b><span>Schritte</span></div><div class="rstat">' + I('c_leaf') + '<b>' + (r.v === 2 ? 'Vegan' : r.v === 1 ? 'Vegetarisch' : r.web ? 'Siehe Zutaten' : 'Mit Fleisch/Fisch') + '</b><span>Ernährung</span></div></div>' +
       (r.c === 'kreation' ? '<div class="kreation-note">' + I('spark') + '<div><b>Eigene Kreation.</b> Diese Kombination habe ich mir ausgedacht. Die einzelnen Techniken sind erprobt, das Rezept als Ganzes wurde nicht in einer Testküche nachgekocht.</div></div>' : '') +
@@ -526,7 +541,8 @@
     $('#cook').innerHTML = '<div class="cook-top"><button class="icon-btn" data-act="cookclose" aria-label="Schließen">' + I('close') + '</button><div class="ttl"><b>' + esc(r.n) + '</b><small>' + esc(DEV[c.dev].n) + ' · Schritt ' + (c.i + 1) + ' von ' + n + '</small></div>' +
       '<button class="btn sm" data-act="cookings">' + I('list', 'sm') + 'Zutaten</button></div><div class="cook-prog"><i style="width:' + ((c.i + 1) / n * 100) + '%"></i></div>' +
       (c.ings ? '<div class="cook-ings card-box"><ul class="ing-list">' + (r.ing || []).map(function (x) { if (x[0] === '#') return '<li class="grp">' + esc(x.slice(1)) + '</li>'; var y = splitIng(x, f); return '<li><span class="t">' + (y.q ? '<span class="q">' + esc(y.q) + '</span> ' : '') + esc(y.t) + '</span></li>'; }).join('') + '</ul></div>' : '') +
-      '<div class="cook-body"><div class="cook-stage">' + ANIM.scene(s.a, s.o, { item: itemFor(r) }).replace('class="scene', 'class="scene play force') + '</div>' +
+      '<div class="cook-body">' + (c.i === n - 1 && r.im && EXT_OK ? '<div class="cook-goal"><img src="' + esc(photoUrl(r.im, 960)) + '" alt="So soll es aussehen" onerror="this.parentNode.remove()"><span>So soll es aussehen' + (r.im[4] === 'w' ? ' (Beispielfoto)' : '') + '</span></div>' :
+        '<div class="cook-stage">' + ANIM.scene(s.a, s.o, { item: itemFor(r) }).replace('class="scene', 'class="scene play force') + '</div>') +
       '<div class="cook-step"><div class="step-n"><span class="num">' + (c.i + 1) + '</span><span class="phase">' + esc(ACTIONS[ANIM.norm(s.a)] || '') + ' · ' + esc(s.ph) + '</span></div><p>' + esc(s.t) + '</p>' + paramsHTML(s.o, r.n + ' · Schritt ' + (c.i + 1)) + '</div></div>' +
       '<div class="cook-nav"><button class="btn" data-act="cookprev" ' + (c.i === 0 ? 'disabled style="opacity:.4"' : '') + '>' + I('back') + 'Zurück</button>' +
       (c.i < n - 1 ? '<button class="btn primary" data-act="cooknext">Weiter' + I('next') + '</button>' : r.plate ? '<button class="btn primary" data-act="cookplate">' + I('plate') + 'Zum Anrichte-Plan</button>' : '<button class="btn primary" data-act="cookclose">' + I('check') + 'Fertig. Guten Appetit!</button>') + '</div>';

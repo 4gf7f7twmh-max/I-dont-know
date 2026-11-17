@@ -348,6 +348,16 @@ textarea.input { min-height: 110px; resize: vertical; line-height: 1.5; }
 .rhero-art { position: relative; z-index: 1; align-self: center; justify-self: center; width: 100%; max-width: 380px; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 50% 55%, #3a404c, #15181f 72%); box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 0 90px hsl(var(--h) 90% 45% / .45), 0 40px 80px -30px #000; display: grid; place-items: center; }
 .rhero-art::before { content: ''; position: absolute; inset: -14px; border-radius: 50%; border: 2px dashed hsl(var(--h) 90% 60% / .35); animation: spin 50s linear infinite; }
 .rhero-art .scene { width: 96%; height: auto; }
+.rhero-art.photo { overflow: hidden; background: #15181f; }
+.rhero-art.photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; animation: platePop .9s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes platePop { from { transform: scale(.85) rotate(-8deg); opacity: 0; } }
+.rhero-art.photo.noimg::after { content: ''; }
+.rhero-art .ph-badge { position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); font: 700 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; background: rgba(7, 8, 11, .75); color: #ffb38f; padding: 5px 10px; border-radius: 999px; border: 1px solid rgba(255, 140, 90, .35); white-space: nowrap; backdrop-filter: blur(6px); }
+.photo-credit { margin: 8px 4px 0; font-size: 12px; color: var(--muted); }
+.photo-credit a { color: var(--accent); }
+.cook-goal { position: relative; width: min(100%, 520px); aspect-ratio: 1; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 10px rgba(255, 255, 255, .04), 0 0 120px rgba(255, 77, 26, .35); }
+.cook-goal img { width: 100%; height: 100%; object-fit: cover; }
+.cook-goal span { position: absolute; bottom: 9%; left: 50%; transform: translateX(-50%); font: 700 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; background: rgba(5, 6, 8, .8); color: #ff8a4a; padding: 7px 12px; border-radius: 999px; white-space: nowrap; }
 .rhero.img::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(7, 8, 11, .94) 25%, rgba(7, 8, 11, .35)), var(--img) center / cover; }
 @media (max-width: 760px) {
   .rhero { grid-template-columns: 1fr; min-height: 0; }

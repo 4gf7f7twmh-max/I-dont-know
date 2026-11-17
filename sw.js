@@ -1,5 +1,5 @@
 /* Kochatlas Service Worker: App-Dateien offline verfügbar machen */
-const CACHE = 'kochatlas-v3';
+const CACHE = 'kochatlas-v4';
 const ASSETS = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png',
   'config.js', 'js/devices.js', 'js/icons.js', 'js/animations.js', 'js/plating.js', 'js/sync.js', 'js/app.js', 'css/scenes.css',
@@ -17,6 +17,7 @@ const ASSETS = [
   "data/12-kreationen.js",
   "data/13-sterne.js",
   "data/web/index.js",
+  "data/images.js",
 ];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
