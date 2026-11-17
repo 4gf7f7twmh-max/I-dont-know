@@ -1,7 +1,7 @@
 /* Kochatlas – App-Logik
-   Routing, Ansichten, Kochmodus, Timer, Einkaufsliste (lokal oder live geteilt), Editor,
+   Routing, Ansichten, Kochmodus, Timer, Familien-Einkaufsliste (js/sync.js), Editor,
    Internet-Rezepte (Wikibooks, nachgeladen), Sterneküche mit Anrichte-Plan, Anrichte-Schule,
-   Umschreiben mit Claude (nur in der veröffentlichten Claude-Version), Online-Suche (TheMealDB). */
+   Online-Suche (TheMealDB). Läuft eigenständig in jedem Browser. */
 (function () {
   'use strict';
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -17,16 +17,14 @@
   var S = {
     favs: store.get('favs', []),
     devices: store.get('devices', ['herd', 'ofen', 'airfryer', 'tm']),
-    shop: store.get('shop', []),
     own: store.get('own', []),
     notes: store.get('notes', {}),
     theme: store.get('theme', 'auto'),
-    onlyMine: store.get('onlyMine', true),
-    ai: store.get('ai', {})
+    onlyMine: store.get('onlyMine', true)
   };
   var save = function (k) { store.set(k, S[k]); };
-  var IN_CLAUDE = !!(window.claude && typeof window.claude.use === 'function');
-  var EXT_OK = !IN_CLAUDE; /* externe Bilder und APIs: in der Claude-Version durch die Sicherheitsrichtlinie gesperrt */
+  var EXT_OK = true; /* externe Bilder (Wikimedia) und Online-Suche */
+  var SY = window.SYNC;
   var F0 = function () { return { q: '', cat: '', dev: '', diet: '', time: 0, cuisine: '', sort: 'empf', src: '' }; };
   var ui = { f: F0(), limit: 60, rec: {}, cook: null };
 
@@ -129,23 +127,7 @@
   }
   function byId(id) { var r = all().filter(function (x) { return x.id === id; })[0]; return r || (id.indexOf('wb-') === 0 ? webRecipe(id) : null); }
 
-  /* Umgeschriebene Fassungen (Claude) in das Rezept einblenden */
-  function aiEntries(rid) {
-    return Object.keys(S.ai).filter(function (k) { return k.split('|')[0] === rid; }).map(function (k) { return S.ai[k]; })
-      .sort(function (a, b) { return (a.ts || 0) - (b.ts || 0); });
-  }
-  function viewOf(r) {
-    var list = aiEntries(r.id);
-    if (!list.length) return r;
-    var v = Object.assign({}, r, { m: Object.assign({}, r.m) });
-    list.forEach(function (a) {
-      v.m[a.dev] = { t: a.t || (r.m[a.dev] || {}).t || 30, s: a.steps, note: 'Von Claude umgeschrieben' + (r.lang === 'en' ? ' und übersetzt' : '') + '. Nicht in einer Testküche geprüft, Zeiten und Temperaturen im Blick behalten.', ai: true };
-    });
-    var last = list[list.length - 1];
-    if (r.lang === 'en' && last.ing && last.ing.length) { v.n = last.n || r.n; v.ing = last.ing; v.desc = last.desc || r.desc; v.tips = last.tips || r.tips; v.translated = true; }
-    v.devs = Object.keys(v.m);
-    return v;
-  }
+  function viewOf(r) { return r; }
 
   var mineOK = function (r) { return r.devs.some(function (d) { return d === 'kalt' || S.devices.indexOf(d) >= 0; }); };
   var isFav = function (id) { return S.favs.indexOf(id) >= 0; };
@@ -280,142 +262,9 @@
   }
   window.KA_autoStep = autoStep;
 
-  /* ---------- Live-Funktionen der veröffentlichten Version ---------- */
-  var CAP = { db: null, user: null, sample: null, me: null, shopLive: false, shopErr: '', names: {} };
-  function useCap(name) { try { return (window.claude && typeof window.claude.use === 'function') ? window.claude.use(name).catch(function () { return null; }) : Promise.resolve(null); } catch (e) { return Promise.resolve(null); } }
-  function initCaps() {
-    useCap('user').then(function (u) { CAP.user = u; if (u) u.id().then(function (id) { CAP.me = id; }).catch(function () {}); });
-    useCap('sample').then(function (s) { CAP.sample = s; if (s && /^\/r\//.test(route())) render(true); });
-    useCap('db').then(function (db) { if (!db) return; CAP.db = db; startShopSync(); });
-  }
-  var shopUnsub = null, shopTimer = null;
-  function startShopSync() {
-    if (!CAP.db || shopUnsub) return;
-    var col = CAP.db.collection('einkauf');
-    shopTimer = setTimeout(function () { CAP.shopErr = 'Die gemeinsame Liste ist gerade nicht erreichbar. Änderungen werden übertragen, sobald die Verbindung steht.'; if (route() === '/einkauf') render(true); }, 10000);
-    shopUnsub = col.onSnapshot(function (snap) {
-      if (!snap.metadata.fromCache) { clearTimeout(shopTimer); CAP.shopErr = ''; }
-      var first = !CAP.shopLive;
-      CAP.shopLive = true;
-      S.shop = snap.docs.map(function (d) { var x = d.data() || {}; return { id: d.id, t: String(x.t || ''), from: String(x.from || ''), done: !!x.done, by: x.by || '', ts: x.ts || 0 }; })
-        .sort(function (a, b) { return a.ts - b.ts; });
-      if (first) migrateLocalShop();
-      resolveNames();
-      navState(route());
-      if (route() === '/einkauf') render(true);
-    }, function () { clearTimeout(shopTimer); CAP.shopLive = false; shopUnsub = null; S.shop = store.get('shop', []); if (route() === '/einkauf') render(true); });
-  }
-  function migrateLocalShop() {
-    var local = store.get('shop', []);
-    if (!local.length || store.get('shopMigrated', false)) return;
-    store.set('shopMigrated', true);
-    local.forEach(function (x) { shopAdd(x.t, x.from, x.done); });
-    store.set('shop', []);
-    toast(local.length + ' Einträge in die gemeinsame Liste übernommen');
-  }
-  function resolveNames() {
-    if (!CAP.user || !CAP.user.profiles) return;
-    var ids = S.shop.map(function (x) { return x.by; }).filter(function (x, i, a) { return x && a.indexOf(x) === i && !(x in CAP.names); });
-    if (!ids.length) return;
-    CAP.user.profiles(ids).then(function (ps) {
-      ids.forEach(function (id) { CAP.names[id] = (ps && ps[id] && ps[id].name) || ''; });
-      if (route() === '/einkauf') render(true);
-    }).catch(function () {});
-  }
-  function shopAdd(t, from, done) {
-    if (CAP.shopLive) {
-      var id = uid();
-      return CAP.db.collection('einkauf').doc(id).set({ t: t, from: from || '', done: !!done, by: CAP.me || '', ts: Date.now() })
-        .catch(function (e) { toast(e && e.code === 'invalid_argument' ? 'Du hast nur Leserechte für die gemeinsame Liste.' : 'Konnte nicht gespeichert werden.'); });
-    }
-    S.shop.push({ id: uid(), t: t, from: from || '', done: !!done }); save('shop'); return Promise.resolve();
-  }
-  function shopUpdate(item, patch) {
-    if (CAP.shopLive) return CAP.db.collection('einkauf').doc(item.id).update(patch).catch(function () { toast('Konnte nicht gespeichert werden.'); });
-    Object.assign(item, patch); save('shop'); return Promise.resolve();
-  }
-  function shopDelete(item) {
-    if (CAP.shopLive) return CAP.db.collection('einkauf').doc(item.id).delete().catch(function () { toast('Konnte nicht gelöscht werden.'); });
-    S.shop = S.shop.filter(function (x) { return x !== item; }); save('shop'); return Promise.resolve();
-  }
-  /* geteilte Umschreibungen laden */
-  var aiFetched = {};
-  function fetchAi(rid) {
-    if (!CAP.db || aiFetched[rid]) return;
-    aiFetched[rid] = true;
-    CAP.db.collection('ai').where('rid', '==', rid).get().then(function (snap) {
-      var changed = false;
-      snap.docs.forEach(function (d) { var x = d.data(); if (!x || !x.dev || !Array.isArray(x.steps)) return; var k = rid + '|' + x.dev; if (!S.ai[k] || (S.ai[k].ts || 0) < (x.ts || 0)) { S.ai[k] = cleanAi(x, x.dev); S.ai[k].ts = x.ts; changed = true; } });
-      if (changed) { save('ai'); if (route() === '/r/' + rid) render(true); }
-    }).catch(function () {});
-  }
-
-  /* ---------- Umschreiben mit Claude ---------- */
-  var OPT_KEYS = ['t', 'sec', 'c', 'mo', 'h', 's', 'l', 'k', 'w', 'lvl', 'p'];
-  var DEV_HINT = {
-    tm: 'Thermomix-Schreibweise verwenden: „5 Min./100 °C/Stufe 1“, Linkslauf für stückige Zutaten, Varoma zum Dämpfen, Teigstufe zum Kneten, höchstens 2,2 Liter Füllmenge im Mixtopf.',
-    airfryer: 'Temperaturen meist 160 bis 200 °C, Korb nicht überfüllen, nach der Hälfte schütteln oder wenden, bei Bedarf in Portionen garen.',
-    ofen: 'Ofenmodus (Ober-/Unterhitze oder Umluft), Temperatur, Schiene und Garprobe angeben.',
-    herd: 'Hitzestufe (niedrig, mittel, hoch) und Topf oder Pfanne angeben.',
-    mikro: 'Wattzahl (800 Watt), Zwischenrühren und Standzeit angeben; nur machbare Schritte, sonst den Herd nennen.',
-    dkt: 'Anbraten im offenen Topf, Flüssigkeitsmindestmenge, Garzeit auf Hochdruck und Druckabbau (natürlich oder schnell) angeben.',
-    slow: 'Stufe LOW oder HIGH mit Stunden, wenig Flüssigkeit, Anbraten vorher in der Pfanne.',
-    grill: 'Direkte oder indirekte Hitze, Temperatur und Deckel angeben.',
-    sousvide: 'Wassertemperatur, Garzeit im Beutel, danach kurz scharf anbraten.',
-    kalt: 'Nur Zubereitung ohne Hitze.'
-  };
-  function aiPrompt(r, dev) {
-    var baseDev = r.devs[0], src = {
-      name: r.n, portionen: r.p, sprache: r.lang === 'en' ? 'Englisch' : 'Deutsch', zutaten: r.ing,
-      schritte: stepsFor(r, baseDev).map(function (s) { return s.t; }), tipps: r.tips || []
-    };
-    return 'Du bist eine erfahrene Köchin und schreibst Rezepte für eine deutsche Kochbuch-App um.\n' +
-      'Aufgabe: Schreibe das Rezept unten auf Deutsch (metrische Einheiten: g, ml, °C; Löffelmaße als EL/TL) und passe die Zubereitung vollständig an dieses Gerät an: ' + DEV[dev].n + ' (' + DEV[dev].sub + '). ' + (DEV_HINT[dev] || '') + '\n' +
-      'Wenn ein Teilschritt mit diesem Gerät nicht sinnvoll ist, nimm dafür den Herd oder Backofen und sag das im Schritt. Erfinde keine Zutaten, die nicht zum Original passen. Schreibe konkrete Schritte mit Zeiten, Temperaturen und Erkennungszeichen, wann etwas fertig ist.\n' +
-      'Antworte nur mit JSON in genau dieser Form:\n' +
-      '{"n":"Name auf Deutsch","desc":"ein sachlicher Satz","ing":["200 g Mehl","#Für die Soße","2 EL Öl"],"t":Gesamtminuten,"steps":[["aktion","Text des Schritts",{"t":10,"c":180}]],"tips":["kurzer Tipp"]}\n' +
-      'Erlaubte Werte für "aktion": ' + Object.keys(ACTIONS).join(', ') + '.\n' +
-      'Optionen pro Schritt (alle optional, nur wenn sie zutreffen): t Minuten, sec Sekunden, c Temperatur in °C oder "Varoma", mo Ofenmodus "OU"|"U"|"G"|"UG", h Herdhitze "max"|"hoch"|"mittel"|"niedrig", s Thermomix-Stufe (Zahl, "teig" oder "sanft"), l true für Linkslauf, k Kerntemperatur, w Watt, lvl "LOW"|"HIGH", p "Hochdruck"|"Niedrigdruck".\n\n' +
-      'Rezept:\n' + JSON.stringify(src);
-  }
-  function cleanAi(j, dev) {
-    if (!j || !Array.isArray(j.steps) || !j.steps.length) throw new Error('format');
-    var steps = j.steps.slice(0, 60).map(function (s) {
-      if (typeof s === 'string') return autoStep(s, dev, 'de');
-      if (!Array.isArray(s)) s = [s.a || s.aktion, s.text || s.t, s.o || s.opts];
-      var a = String(s[0] || ''), txt = String(s[1] || ''), o = {}, src = s[2] && typeof s[2] === 'object' ? s[2] : {};
-      OPT_KEYS.forEach(function (k) { if (src[k] != null && src[k] !== '' && src[k] !== false) o[k] = src[k]; });
-      ['t', 'sec', 'k', 'w'].forEach(function (k) { if (o[k] != null) { o[k] = parseFloat(o[k]); if (!isFinite(o[k]) || o[k] <= 0) delete o[k]; } });
-      if (o.c != null && o.c !== 'Varoma') { o.c = parseFloat(o.c); if (!isFinite(o.c)) delete o.c; }
-      if (o.mo && !MODES[o.mo]) delete o.mo;
-      if (o.h && !HEATS[o.h]) delete o.h;
-      if (o.t > 1440) delete o.t;
-      if (!ACTIONS[a]) a = autoStep(txt, dev, 'de')[0];
-      return [a, txt.slice(0, 600), o];
-    }).filter(function (s) { return s[1]; });
-    var str = function (x) { return Array.isArray(x) ? x.map(String).filter(Boolean).slice(0, 80) : []; };
-    return { dev: dev, n: String(j.n || '').slice(0, 140), desc: String(j.desc || '').slice(0, 300), ing: str(j.ing), tips: str(j.tips).slice(0, 8), t: Math.round(parseFloat(j.t) || 0) || null, steps: steps };
-  }
-  var aiRun = null;
-  function runAi(r, dev) {
-    if (!CAP.sample || aiRun) return;
-    var ctl = new AbortController();
-    aiRun = { rid: r.id, dev: dev, ctl: ctl };
-    render(true);
-    CAP.sample.json(aiPrompt(r, dev), { signal: ctl.signal, modelTier: 'default' }).then(function (j) {
-      var res = cleanAi(j, dev); res.ts = Date.now();
-      S.ai[r.id + '|' + dev] = res; save('ai');
-      if (ui.rec[r.id]) ui.rec[r.id].dev = dev;
-      if (CAP.db) {
-        var body = Object.assign({ rid: r.id }, res, { by: CAP.me || '' });
-        CAP.db.collection('ai').doc((r.id + '__' + dev).replace(/[^A-Za-z0-9_\-.~:@+]/g, '_')).set(JSON.parse(JSON.stringify(body))).catch(function () {});
-      }
-      toast('Fertig umgeschrieben für ' + DEV[dev].n);
-    }).catch(function (e) {
-      var c = e && e.code;
-      if (c !== 'cancelled') toast(c === 'not_granted' ? 'Claude wurde für diese Seite nicht erlaubt.' : c === 'rate_limited' ? 'Gerade zu viele Anfragen, bitte gleich nochmal.' : c === 'invalid_json' || (e && e.message === 'format') ? 'Antwort unbrauchbar, bitte nochmal versuchen.' : 'Umschreiben hat nicht geklappt.');
-    }).then(function () { aiRun = null; render(true); });
-  }
+  /* ---------- Einkaufsliste über SYNC ---------- */
+  function shopItems() { return SY.state().items; }
+  function shopAdd(t, from) { SY.add([{ t: t, from: from || '' }]); return Promise.resolve(); }
 
   /* ---------- Bausteine ---------- */
   function card(r) {
@@ -449,28 +298,34 @@
     A.forEach(function (r) { if (r.k) cuis[r.k] = (cuis[r.k] || 0) + 1; });
     var cuisList = Object.keys(cuis).sort(function (a, b) { return cuis[b] - cuis[a]; });
     var webN = (window.KA_WEB_INDEX || []).length;
-    return '<section class="home-hero"><div class="deco">' + ANIM.scene('stir', { h: 'mittel' }).replace('class="scene', 'class="scene play force') + '</div>' +
-      '<h1>' + greet + '! Was kochen wir heute?</h1><p>' + A.length.toLocaleString('de-DE') + ' Rezepte aus aller Welt, Schritt für Schritt für dein Gerät: Herd, Backofen, Heißluftfritteuse, Thermomix, Sous-vide und mehr.</p>' +
+    var band = function (cls, list) { var t = list.map(function (w) { return '<span>' + w + '</span>'; }).join(''); return '<div class="marquee ' + cls + '" aria-hidden="true"><div class="track">' + t + t + '</div></div>'; };
+    return '<section class="home-hero"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>' +
+      '<div class="hero-txt"><span class="hero-kicker">' + greet + ' · Küche ist heiß</span>' +
+      '<h1>Koch dich<br>durch <span class="rotor"><span><span class="grad-text">die Welt.</span><span class="grad-text">jedes Gerät.</span><span class="grad-text">Sterneküche.</span><span class="grad-text">' + A.length.toLocaleString('de-DE') + ' Rezepte.</span><span class="grad-text">die Welt.</span></span></span></h1>' +
+      '<p class="sub">Jeder Schritt animiert, mit Temperatur, Stufe und Timer für dein Gerät. Vom Thermomix bis zum Sous-vide-Stick, vom Rührei bis zum Teller wie im Sternerestaurant.</p>' +
       '<form class="searchbox" data-form="search">' + I('search') + '<input id="homeq" type="search" placeholder="Rezept, Zutat oder Land suchen …" autocomplete="off" aria-label="Suche"></form>' +
-      '<div class="hero-stats"><div><b>' + A.length.toLocaleString('de-DE') + '</b>Rezepte</div><div><b>' + webN.toLocaleString('de-DE') + '</b>aus dem Internet</div><div><b>' + methods + '</b>Geräte-Anleitungen</div><div><b>' + cuisList.length + '</b>Länder & Regionen</div></div></section>' +
+      '<div class="hero-stats"><div><b>' + A.length.toLocaleString('de-DE') + '</b>Rezepte</div><div><b>' + cuisList.length + '</b>Länder</div><div><b>' + methods + '</b>Geräte-Anleitungen</div><div><b>' + Object.keys(ACTIONS).length + '</b>Techniken animiert</div></div></div>' +
+      '<div class="hero-art" aria-hidden="true"><span class="ring"></span><span class="ring r2"></span><div class="burner">' + ANIM.scene('stir', { h: 'hoch' }).replace('class="scene', 'class="scene play force') + '</div>' +
+      '<span class="tag t1">180 °C · UMLUFT</span><span class="tag t2">STUFE 4 ↺</span><span class="tag t3">KERN 54 °C</span><span class="tag t4">12:00</span></div></section>' +
+      '<div class="marquee-wrap">' + band('m1', ['Kochen', 'Backen', 'Braten', 'Dämpfen', 'Frittieren', 'Sous-vide', 'Schmoren', 'Anrichten']) + band('m2', ['Herd', 'Backofen', 'Airfryer', 'Thermomix', 'Mikrowelle', 'Schnellkochtopf', 'Slow Cooker', 'Grill']) + '</div>' +
 
-      '<section class="sec"><div class="sec-h"><h2>Meine Küche</h2><span class="muted" style="font-size:14px">Tippe an, was du hast</span></div><div class="dev-grid">' +
+      '<section class="sec"><div class="sec-h"><div><span class="eyebrow">' + S.devices.length + ' Geräte aktiv</span><h2>Meine Küche</h2></div><span class="muted" style="font-size:14px">Tippe an, was du hast</span></div><div class="dev-grid">' +
       Object.keys(DEV).filter(function (d) { return d !== 'kalt'; }).map(function (d) { return devTile(d, S.devices.indexOf(d) >= 0, 'mydev'); }).join('') + '</div></section>' +
 
       '<section class="sec cta-row"><button class="cta" data-act="random">' + '<span class="ic">' + I('dice', 'lg') + '</span><span><b>Überrasch mich</b><span>Ein zufälliges Rezept für deine Geräte</span></span></button>' +
       '<a class="cta" href="#anrichten"><span class="ic">' + I('plate', 'lg') + '</span><span><b>Anrichte-Schule</b><span>Teller anrichten wie im Sternerestaurant</span></span></a>' +
-      '<a class="cta" href="#einkauf"><span class="ic">' + I('users2', 'lg') + '</span><span><b>Gemeinsame Einkaufsliste</b><span>' + (CAP.shopLive ? 'Live geteilt' : 'Lokal, teilbar per Messenger') + '</span></span></a></section>' +
+      '<a class="cta" href="#einkauf"><span class="ic">' + I('users2', 'lg') + '</span><span><b>Gemeinsame Einkaufsliste</b><span>' + (SY.state().family ? 'Live mit ' + esc(SY.state().family.name) : 'Familie verbinden, alle sehen jede Änderung') + '</span></span></a></section>' +
 
       '<section class="sec"><div class="sec-h"><h2>Sterneküche</h2><a href="#entdecken" data-act="fcat" data-cat="sterne">Alle</a></div><p class="muted" style="margin:-6px 0 12px">Mit visuellem Anrichte-Plan: Schritt für Schritt, wo was auf den Teller kommt.</p><div class="hscroll">' + sterne.map(card).join('') + '</div></section>' +
 
       '<section class="sec"><div class="sec-h"><h2>Kategorien</h2><a href="#entdecken" data-act="fclear">Alle ansehen</a></div><div class="cat-grid">' +
       Object.keys(CATS).map(function (c) {
         var n = A.filter(function (r) { return r.c === c; }).length;
-        return '<a class="cat-tile" href="#entdecken" data-act="fcat" data-cat="' + c + '" style="--h:' + CATS[c].h + '">' + I('c_' + CATS[c].ic) + '<b>' + CATS[c].n + '</b><span>' + n.toLocaleString('de-DE') + ' Rezepte</span></a>';
+        return '<a class="cat-tile" href="#entdecken" data-act="fcat" data-cat="' + c + '" style="--h:' + CATS[c].h + ';--tilt:' + ((hashStr(c) % 5) - 2) * 0.6 + 'deg">' + I('c_' + CATS[c].ic) + '<b>' + CATS[c].n + '</b><span>' + n.toLocaleString('de-DE') + ' Rezepte</span></a>';
       }).join('') + '</div></section>' +
 
       (webDe.length ? '<section class="sec"><div class="sec-h"><h2>Aus dem deutschen Wikibooks-Kochbuch</h2><a href="#entdecken" data-act="fsrc" data-v="de">Alle</a></div><div class="hscroll">' + webDe.map(card).join('') + '</div></section>' : '') +
-      (webEn.length ? '<section class="sec"><div class="sec-h"><h2>Weltküche (englische Originale)</h2><a href="#entdecken" data-act="fsrc" data-v="en">Alle</a></div><p class="muted" style="margin:-6px 0 12px">' + (CAP.sample ? 'Auf der Rezeptseite lässt Claude sie auf Deutsch übersetzen und für dein Gerät umschreiben.' : 'Originaltexte auf Englisch, Animationen und Timer werden automatisch zugeordnet.') + '</p><div class="hscroll">' + webEn.map(card).join('') + '</div></section>' : '') +
+      (webEn.length ? '<section class="sec"><div class="sec-h"><h2>Weltküche (englische Originale)</h2><a href="#entdecken" data-act="fsrc" data-v="en">Alle</a></div><p class="muted" style="margin:-6px 0 12px">' + 'Originaltexte auf Englisch, Animationen und Timer werden automatisch zugeordnet.' + '</p><div class="hscroll">' + webEn.map(card).join('') + '</div></section>' : '') +
       '<section class="sec"><div class="sec-h"><h2>Eigene Kreationen</h2><a href="#entdecken" data-act="fcat" data-cat="kreation">Alle</a></div><p class="muted" style="margin:-6px 0 12px">Ideen von mir, nicht in einer Testküche erprobt.</p><div class="hscroll">' + kre.map(card).join('') + '</div></section>' +
       (quick.length ? '<section class="sec"><div class="sec-h"><h2>In 30 Minuten fertig</h2><a href="#entdecken" data-act="ftime">Alle</a></div><div class="hscroll">' + quick.map(card).join('') + '</div></section>' : '') +
       '<section class="sec"><div class="sec-h"><h2>Weltreise</h2></div><div class="chips">' +
@@ -558,18 +413,6 @@
     if (!ui.rec[r.id]) ui.rec[r.id] = { p: r.p || 4, done: {}, pi: -1 };
     var st = ui.rec[r.id]; st.dev = pickDev(r); return st;
   }
-  function aiBox(r) {
-    if (!CAP.sample) return r.lang === 'en' ? '<div class="info" style="margin:14px 0">' + I('info', 'sm') + ' Englischer Originaltext. In der über Claude geteilten Version der App kann Claude das Rezept auf Deutsch übersetzen und für jedes Gerät umschreiben.</div>' : '';
-    var running = aiRun && aiRun.rid === r.id;
-    var mineList = S.devices.filter(function (d) { return DEV[d]; });
-    var def = r.lang === 'en' ? (mineList.indexOf(r.devs[0]) >= 0 || !mineList.length ? r.devs[0] : mineList[0]) : (mineList.filter(function (d) { return !r.m[d]; })[0] || mineList[0] || r.devs[0]);
-    var opts = Object.keys(DEV).filter(function (d) { return d !== 'kalt'; }).sort(function (a, b) { return (S.devices.indexOf(a) < 0) - (S.devices.indexOf(b) < 0); })
-      .map(function (d) { return '<option value="' + d + '"' + (d === def ? ' selected' : '') + '>' + DEV[d].n + (r.m[d] ? (r.lang === 'en' ? ' (übersetzen)' : ' (vorhanden)') : '') + '</option>'; }).join('');
-    return '<div class="ai-box">' + I('wand', 'lg') + '<p><b>' + (r.lang === 'en' ? 'Auf Deutsch übersetzen und für dein Gerät umschreiben' : 'Für ein anderes Gerät umschreiben') + '</b><br>' +
-      (running ? 'Claude schreibt das Rezept für ' + DEV[aiRun.dev].n + ' um. Das dauert meist 20 bis 60 Sekunden …' : 'Claude passt Zutaten, Schritte, Zeiten und Temperaturen an. Das Ergebnis wird gespeichert' + (CAP.db ? ' und mit allen geteilt, die die App nutzen.' : '.')) + '</p>' +
-      (running ? '<button class="btn" data-act="aistop">' + I('close', 'sm') + 'Abbrechen</button>' :
-        '<select class="input" id="aidev" style="width:auto" aria-label="Gerät">' + opts + '</select><button class="btn primary" data-act="airun">' + I('wand', 'sm') + 'Umschreiben</button>') + '</div>';
-  }
   function plateSection(r) {
     if (!r.plate) return '';
     var st = ui.rec[r.id], els = r.plate.els, i = st.pi;
@@ -588,7 +431,6 @@
       return '<div class="empty">' + I('book') + '<h3>Rezept wird geladen …</h3></div>';
     }
     if (!base) return '<div class="empty">' + I('info') + '<h3>Rezept nicht gefunden</h3><p><a href="#start" style="color:var(--accent)">Zur Startseite</a></p></div>';
-    fetchAi(base.id);
     var r = viewOf(base), st = recState(r), dev = st.dev, f = st.p / (r.p || 4), m = r.m[dev] || {};
     var steps = stepsFor(r, dev), ctx = { item: itemFor(r) };
     var ingHTML = (r.ing || []).map(function (s, i) {
@@ -598,21 +440,22 @@
     }).join('');
     var stepHTML = steps.map(function (s, i) {
       return '<div class="step"><div class="stage" data-act="force">' + ANIM.scene(s.a, s.o, ctx) + '<span class="alabel">' + esc(ACTIONS[ANIM.norm(s.a)] || '') + '</span></div><div>' +
-        '<div class="step-n"><span class="num">' + (i + 1) + '</span><span class="phase">' + esc(s.ph) + '</span></div><p>' + esc(s.t) + '</p>' + paramsHTML(s.o, r.n + ' · Schritt ' + (i + 1)) + '</div></div>';
+        '<div class="step-n"><span class="num">' + String(i + 1).padStart(2, '0') + '</span><span class="phase">' + esc(s.ph) + '</span></div><p>' + esc(s.t) + '</p>' + paramsHTML(s.o, r.n + ' · Schritt ' + (i + 1)) + '</div></div>';
     }).join('');
-    var heroImg = EXT_OK && r.img ? 'background-image:linear-gradient(180deg,rgba(0,0,0,.15),rgba(0,0,0,.65)),url(' + esc(imgUrl(r.img, 1200)) + ');background-size:cover;background-position:center;' : '';
+    var heroImg = EXT_OK && r.img ? '--img:url(' + esc(imgUrl(r.img, 1400)) + ')' : '';
+    var heroStep = steps.filter(function (x) { return ['prep', 'chop', 'serve', 'season'].indexOf(ANIM.norm(x.a)) < 0; })[0] || steps[0];
     return '<article>' +
-      '<div class="rhero" style="--h:' + hue(r) + ';' + heroImg + '"><div class="rhero-top"><button class="glass-btn" data-act="back" aria-label="Zurück">' + I('back') + '</button>' +
+      '<div class="rhero' + (heroImg ? ' img' : '') + '" style="--h:' + hue(r) + ';' + heroImg + '"><div class="rhero-top"><button class="glass-btn" data-act="back" aria-label="Zurück">' + I('back') + '</button>' +
       '<span style="display:flex;gap:8px"><button class="glass-btn" data-act="share" aria-label="Teilen">' + I('share') + '</button>' +
       (r.own ? '<a class="glass-btn" href="#bearbeiten-' + esc(r.id) + '" aria-label="Bearbeiten">' + I('edit') + '</a>' : '') +
       '<button class="glass-btn ' + (isFav(r.id) ? 'on' : '') + '" data-act="fav" data-id="' + esc(r.id) + '" aria-label="Favorit">' + I('heart') + '</button></span></div>' +
-      (heroImg ? '' : '<div class="rhero-ic">' + I('c_' + (CATS[r.c] || CATS.welt).ic) + '</div>') +
-      '<div class="rhero-txt"><span class="pill">' + esc((CATS[r.c] || {}).n || '') + (r.k ? ' · ' + esc(r.k) : '') + '</span><h1>' + esc(r.n) + '</h1>' + (r.desc ? '<p>' + esc(r.desc) + '</p>' : '') + '</div></div>' +
+      '<div class="rhero-txt"><span class="pill">' + esc((CATS[r.c] || {}).n || '') + (r.k ? ' · ' + esc(r.k) : '') + '</span><h1>' + esc(r.n) + '</h1>' + (r.desc ? '<p>' + esc(r.desc) + '</p>' : '') + '</div>' +
+      (heroImg ? '' : '<div class="rhero-art" aria-hidden="true">' + (heroStep ? ANIM.scene(heroStep.a, heroStep.o, ctx).replace('class="scene', 'class="scene play force') : '') + '</div>') + '</div>' +
       '<div class="rstats"><div class="rstat">' + I('clock') + '<b>' + fmtTime(m.t) + '</b><span>Gesamtzeit</span></div><div class="rstat">' + I('bars') + '<b>' + DIFF[r.d || 1] + '</b><span>Schwierigkeit</span></div>' +
       '<div class="rstat">' + I('list') + '<b>' + steps.length + '</b><span>Schritte</span></div><div class="rstat">' + I('c_leaf') + '<b>' + (r.v === 2 ? 'Vegan' : r.v === 1 ? 'Vegetarisch' : r.web ? 'Siehe Zutaten' : 'Mit Fleisch/Fisch') + '</b><span>Ernährung</span></div></div>' +
       (r.c === 'kreation' ? '<div class="kreation-note">' + I('spark') + '<div><b>Eigene Kreation.</b> Diese Kombination habe ich mir ausgedacht. Die einzelnen Techniken sind erprobt, das Rezept als Ganzes wurde nicht in einer Testküche nachgekocht.</div></div>' : '') +
       (r.web ? '<div class="info" style="margin-bottom:6px">Quelle: <a href="' + esc(r.srcUrl) + '" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">' + esc(base.n) + '</a> aus dem ' + esc(r.src) + '. Die Animationen und Timer ordnet die App automatisch zu.</div>' : r.src ? '<div class="info" style="margin-bottom:14px">Quelle: ' + esc(r.src) + '</div>' : '') +
-      aiBox(base) +
+      (r.lang === 'en' ? '<div class="info" style="margin:0 0 14px">' + I('info', 'sm') + ' Englischer Originaltext aus dem Wikibooks Cookbook. Animationen, Timer und Temperaturen ordnet die App automatisch zu.</div>' : '') +
       '<section class="devpick"><h2>Womit kochst du?</h2><div class="devtabs">' + r.devs.map(function (d) {
         return '<button class="devtab ' + (d === dev ? 'on ' : '') + (S.devices.indexOf(d) < 0 && d !== 'kalt' ? 'notmine' : '') + '" data-act="tab" data-dev="' + d + '">' + I('d_' + d) + '<span><b>' + DEV[d].n + (r.m[d].ai ? ' ✦' : '') + '</b><small>' + fmtTime(r.m[d].t) + '</small></span></button>';
       }).join('') + '</div>' + (r.needs && r.needs.length && !m.ai ? '<p class="muted" style="font-size:13.5px;margin:6px 0 0">Laut Anleitung außerdem nötig: ' + r.needs.map(function (d) { return DEV[d].n; }).join(', ') + '</p>' : '') + '</section>' +
@@ -620,7 +463,7 @@
       '<div class="portions"><button data-act="por" data-d="-1" aria-label="Weniger">' + I('minus') + '</button><b>' + st.p + ' ' + esc(r.pu || (st.p === 1 ? 'Portion' : 'Portionen')) + '</b><button data-act="por" data-d="1" aria-label="Mehr">' + I('plus') + '</button></div>' +
       '<ul class="ing-list">' + ingHTML + '</ul>' +
       '<button class="btn block" style="margin-top:14px" data-act="toshop">' + I('cart') + 'Auf die Einkaufsliste</button><p class="muted" style="font-size:12.5px;margin:8px 0 0">Abgehakte Zutaten (schon vorhanden) werden nicht übernommen.</p></aside>' +
-      '<section class="steps"><div class="steps-head"><h2>Zubereitung · ' + esc(DEV[dev].n) + '</h2><button class="btn primary" data-act="cook">' + I('play') + 'Kochmodus starten</button></div>' +
+      '<section class="steps"><div class="steps-head"><div><span class="eyebrow">' + steps.length + ' Schritte · ' + esc(DEV[dev].n) + '</span><h2>Zubereitung</h2></div><button class="btn primary" data-act="cook">' + I('play') + 'Kochmodus starten</button></div>' +
       (m.note ? '<div class="method-note">' + I('info') + '<span>' + esc(m.note) + '</span></div>' : '') + stepHTML +
       plateSection(r) +
       (r.tips && r.tips.length ? '<div class="tips card-box"><h2 style="font-size:18px;display:flex;gap:8px;align-items:center">' + I('bulb') + 'Tipps</h2><ul>' + r.tips.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '') +
@@ -726,20 +569,90 @@
   }
 
   /* ---------- Einkaufsliste ---------- */
-  function vShop() {
-    var open = S.shop.filter(function (x) { return !x.done; }).length;
-    var who = function (x) { if (!CAP.shopLive || !x.by) return ''; if (x.by === CAP.me) return 'von dir'; var n = CAP.names[x.by]; return n ? 'von ' + n : ''; };
-    return '<div class="page-h"><h1>Einkaufsliste</h1><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="sync-pill ' + (CAP.shopLive ? 'live' : '') + '">' + (CAP.shopLive ? 'Live geteilt' : I('cloud', 'sm') + 'Nur auf diesem Gerät') + '</span>' +
+  var STATUS = { off: ['Nur auf diesem Gerät', ''], connecting: ['Verbinde …', 'wait'], live: ['Live', 'live'], offline: ['Offline, wird nachgesendet', 'wait'], error: ['Fehler', 'err'] };
+  function syncPill() {
+    var st = SY.state(), s = STATUS[st.status] || STATUS.off;
+    return '<span class="sync-pill ' + s[1] + '">' + (st.family ? esc(st.family.name) + ' · ' : '') + s[0] + '</span>';
+  }
+  function shopHead() {
+    var st = SY.state(), items = st.items, open = items.filter(function (x) { return !x.done; }).length;
+    return '<div class="page-h"><div><span class="eyebrow">' + open + ' offen · ' + items.length + ' gesamt</span><h1>Einkaufsliste</h1></div><div class="row-wrap">' + syncPill() +
       '<button class="btn sm" data-act="shopshare">' + I('share', 'sm') + 'Als Text teilen</button><button class="btn sm" data-act="shopclean">Erledigte entfernen</button><button class="btn sm danger" data-act="shopclear">Alles löschen</button></div></div>' +
-      (CAP.shopErr ? '<div class="method-note">' + I('info') + '<span>' + esc(CAP.shopErr) + '</span></div>' : '') +
-      '<div class="card-box"><form class="add-row" data-form="shopadd"><input class="input" id="shopnew" placeholder="Artikel hinzufügen, z. B. 1 Liter Milch" autocomplete="off"><button class="btn primary" aria-label="Hinzufügen">' + I('plus') + '</button></form>' +
-      (S.shop.length ? '<p class="muted" style="margin:0 0 6px;font-size:14px">' + open + ' offen</p><ul class="list">' + S.shop.map(function (x, i) {
-        var w = who(x), meta = [x.from, w].filter(Boolean).join(' · ');
-        return '<li class="' + (x.done ? 'done' : '') + '"><button class="cb" data-act="shoptoggle" data-i="' + i + '" aria-label="Abhaken">' + I('check', 'sm') + '</button><span class="t">' + esc(x.t) + (meta ? '<small>' + esc(meta) + '</small>' : '') + '</span><button class="icon-btn" data-act="shopdel" data-i="' + i + '" aria-label="Entfernen">' + I('trash', 'sm') + '</button></li>';
-      }).join('') + '</ul>' : '<div class="empty">' + I('cart') + '<h3>Noch leer</h3><p>Auf einer Rezeptseite „Auf die Einkaufsliste“ tippen oder oben etwas eintragen.</p></div>') + '</div>' +
-      '<div class="card-box" style="margin-top:16px"><h2 style="font-size:18px;display:flex;gap:8px;align-items:center;margin-bottom:8px">' + I('users2') + 'Gemeinsam einkaufen</h2>' +
-      (CAP.shopLive ? '<p style="margin:0">Diese Liste ist live geteilt. Wer die App über deinen Claude-Link nutzt und als <b>Bearbeiter</b> eingeladen ist, sieht jede Änderung sofort und kann selbst Artikel eintragen und abhaken. Einladen: oben in Claude auf „Teilen“ tippen und die E-Mail-Adresse eintragen, Berechtigung „Bearbeiten“.</p>' :
-        '<p style="margin:0 0 8px">Auf diesem Gerät ist die Liste lokal gespeichert. Für eine Liste, die zwei Personen live gemeinsam bearbeiten, die App über den Claude-Link öffnen und die andere Person per E-Mail als Bearbeiter einladen. Bis dahin: „Als Text teilen“ schickt die offene Liste per WhatsApp, Signal oder Nachricht.</p>') + '</div>';
+      (st.error ? '<div class="method-note">' + I('info') + '<span>' + esc(st.error) + '</span></div>' : '') +
+      (!st.family ? '<a class="family-banner" href="#familie"><span class="ic">' + I('users2', 'lg') + '</span><span><b>Gemeinsam einkaufen</b><span>Familie anlegen oder beitreten. Dann sieht jedes Mitglied jede Änderung sofort auf dem eigenen Handy.</span></span>' + I('next') + '</a>' : '');
+  }
+  function shopList() {
+    var st = SY.state(), items = st.items, me = st.me.name;
+    var meta = function (x) {
+      var w = [];
+      if (x.from) w.push(x.from);
+      if (st.family && x.by) w.push(x.by === me ? 'von dir' : 'von ' + x.by);
+      if (x.done && x.doneBy && st.family) w.push('erledigt von ' + (x.doneBy === me ? 'dir' : x.doneBy));
+      if (x.pending) w.push('wird gesendet');
+      return w.join(' · ');
+    };
+    if (!items.length) return '<div class="empty">' + I('cart') + '<h3>Alles da</h3><p>Auf einer Rezeptseite „Auf die Einkaufsliste“ tippen oder oben etwas eintragen.</p></div>';
+    var sorted = items.slice().sort(function (a, b) { return (a.done - b.done) || ((a.ts || 0) - (b.ts || 0)); });
+    return '<ul class="list">' + sorted.map(function (x) {
+      var m = meta(x);
+      return '<li class="' + (x.done ? 'done' : '') + '"><button class="cb" data-act="shoptoggle" data-id="' + esc(x.id) + '" aria-label="Abhaken">' + I('check', 'sm') + '</button><span class="t">' + esc(x.t) + (m ? '<small>' + esc(m) + '</small>' : '') + '</span><button class="icon-btn" data-act="shopdel" data-id="' + esc(x.id) + '" aria-label="Entfernen">' + I('trash', 'sm') + '</button></li>';
+    }).join('') + '</ul>';
+  }
+  function vShop() {
+    return '<div id="shophead">' + shopHead() + '</div>' +
+      '<div class="card-box shopbox"><form class="add-row" data-form="shopadd"><input class="input" id="shopnew" placeholder="Was fehlt? z. B. Milch, Brot, Eier" autocomplete="off" enterkeyhint="done"><button class="btn primary" aria-label="Hinzufügen">' + I('plus') + '</button></form>' +
+      '<div id="shoplist">' + shopList() + '</div></div>';
+  }
+  function refreshShop() {
+    var h = $('#shophead'), l = $('#shoplist');
+    if (h) h.innerHTML = shopHead();
+    if (l) {
+      var ids = {}; $$('#shoplist li .cb').forEach(function (b) { ids[b.dataset.id] = 1; });
+      l.innerHTML = shopList();
+      $$('#shoplist li').forEach(function (li) { var b = $('.cb', li); if (b && ids[b.dataset.id]) li.style.animation = 'none'; });
+    }
+  }
+
+  /* ---------- Familie ---------- */
+  var famUi = { joinCode: '', err: '', busy: false };
+  function vFamily() {
+    var st = SY.state(), can = SY.canShare();
+    if (st.family) {
+      var link = SY.inviteLink();
+      return '<div class="page-h"><div><span class="eyebrow">Familie · ' + esc(SY.backendName()) + '</span><h1>' + esc(st.family.name) + '</h1></div>' + syncPill() + '</div>' +
+        '<div class="two-col">' +
+        '<div class="card-box invite"><h2>Mitglieder einladen</h2><p class="muted">Code eingeben lassen oder den QR-Code mit dem Handy scannen. Danach sieht jedes Mitglied die Einkaufsliste live.</p>' +
+        '<div class="famcode" aria-label="Familiencode">' + esc(SY.fmtCode(st.family.id)) + '</div>' +
+        '<div class="qr" id="qr"></div>' +
+        '<div class="row-wrap"><button class="btn primary" data-act="faminvite">' + I('share', 'sm') + 'Einladung senden</button><button class="btn" data-act="famcopy">' + I('list', 'sm') + 'Link kopieren</button></div>' +
+        '<p class="muted small">Der Code ist der Schlüssel zu eurer Liste. Gebt ihn nur an Menschen, die mitschreiben sollen.</p></div>' +
+        '<div class="card-box"><h2>Wer ist dabei</h2><ul class="members">' + st.members.map(function (m) {
+          return '<li><span class="avatar" style="--h:' + (hashStr(m.id) % 360) + '">' + esc((m.name || '?').slice(0, 1).toUpperCase()) + '</span><b>' + esc(m.name) + (m.id === st.me.id ? ' <span class="muted">(du)</span>' : '') + '</b></li>';
+        }).join('') + '</ul>' +
+        '<form data-form="myname" class="field"><label for="myname">Dein Name in der Liste</label><div class="add-row" style="margin:0"><input class="input" id="myname" value="' + esc(st.me.name) + '" maxlength="40" placeholder="z. B. Anna"><button class="btn">Speichern</button></div></form>' +
+        '<form data-form="famname" class="field"><label for="famname">Name der Familie</label><div class="add-row" style="margin:0"><input class="input" id="famname" value="' + esc(st.family.name) + '" maxlength="60"><button class="btn">Speichern</button></div></form>' +
+        '<button class="btn danger" data-act="famleave">' + I('close', 'sm') + 'Familie auf diesem Gerät verlassen</button></div></div>' +
+        '<p class="muted small" style="margin-top:14px">Einladungslink: <span class="selectable">' + esc(link) + '</span></p>';
+    }
+    var setup = !can ? '<div class="method-note">' + I('info') + '<span>' + (st.checked ? 'Für eine gemeinsame Liste braucht die App einen Kochatlas-Server oder ein Firebase-Projekt. Diese Installation hat noch keins. Die Anleitung steht in der README (Abschnitt „Familien-Synchronisierung einrichten“). Bis dahin funktioniert die Liste auf diesem Gerät.' : 'Prüfe, ob eine Synchronisierung verfügbar ist …') + '</span></div>' : '';
+    return '<div class="page-h"><div><span class="eyebrow">Gemeinsam einkaufen</span><h1>Familie</h1></div></div>' +
+      '<p class="lead">Eine Familie teilt sich eine Einkaufsliste. Wer etwas einträgt oder abhakt, sieht es bei allen anderen sofort. Keine Anmeldung, kein Konto, nur ein Code.</p>' + setup +
+      (famUi.err ? '<div class="method-note err">' + I('info') + '<span>' + esc(famUi.err) + '</span></div>' : '') +
+      '<div class="two-col">' +
+      '<form class="card-box" data-form="famcreate"><h2>Neue Familie gründen</h2><div class="field"><label for="fc_name">Name der Familie</label><input class="input" id="fc_name" placeholder="z. B. Familie Berg" maxlength="60"></div>' +
+      '<div class="field"><label for="fc_me">Dein Name</label><input class="input" id="fc_me" value="' + esc(st.me.name) + '" placeholder="z. B. Anna" maxlength="40" required></div>' +
+      '<button class="btn primary block"' + (can && !famUi.busy ? '' : ' disabled') + '>' + I('plus', 'sm') + 'Familie gründen</button></form>' +
+      '<form class="card-box" data-form="famjoin"><h2>Einer Familie beitreten</h2><div class="field"><label for="fj_code">Familiencode</label><input class="input mono" id="fj_code" value="' + esc(famUi.joinCode) + '" placeholder="ABCD-EFGH-IJKL-MNOP" autocapitalize="characters" autocomplete="off" required></div>' +
+      '<div class="field"><label for="fj_me">Dein Name</label><input class="input" id="fj_me" value="' + esc(st.me.name) + '" placeholder="z. B. Ben" maxlength="40" required></div>' +
+      '<button class="btn primary block"' + (can && !famUi.busy ? '' : ' disabled') + '>' + I('users2', 'sm') + 'Beitreten</button></form></div>';
+  }
+  function hashStr(s) { var h = 0; s = String(s || ''); for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+  var qrLoad = null;
+  function drawQr() {
+    var el = $('#qr'), link = SY.inviteLink(); if (!el || !link) return;
+    if (!qrLoad) qrLoad = new Promise(function (res, rej) { if (window.QRCode) return res(); var sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
+    qrLoad.then(function () { el.innerHTML = ''; new window.QRCode(el, { text: link, width: 196, height: 196, colorDark: '#0b0d12', colorLight: '#ffffff', correctLevel: window.QRCode.CorrectLevel.M }); })
+      .catch(function () { el.innerHTML = '<p class="muted small">QR-Code braucht eine Internetverbindung. Der Code oben funktioniert immer.</p>'; qrLoad = null; });
   }
 
   /* ---------- Favoriten ---------- */
@@ -755,11 +668,12 @@
     return '<div class="page-h"><h1>Meine Rezepte</h1><a class="btn primary" href="#neu">' + I('plus') + 'Neues Rezept</a></div>' +
       (own.length ? '<div class="grid">' + own.map(card).join('') + '</div>' : '<div class="card-box empty">' + I('book') + '<h3>Noch keine eigenen Rezepte</h3><p>Lege dein erstes Rezept an. Animation, Temperatur, Stufe und Timer erkennt die App automatisch aus deinem Text.</p></div>') +
       '<section class="sec"><div class="sec-h"><h2>Meine Geräte</h2></div><div class="dev-grid">' + Object.keys(DEV).filter(function (d) { return d !== 'kalt'; }).map(function (d) { return devTile(d, S.devices.indexOf(d) >= 0, 'mydev'); }).join('') + '</div></section>' +
+      '<section class="sec"><a class="family-banner" href="#familie"><span class="ic">' + I('users2', 'lg') + '</span><span><b>' + (SY.state().family ? 'Familie: ' + esc(SY.state().family.name) : 'Familie gründen oder beitreten') + '</b><span>' + (SY.state().family ? SY.state().members.length + ' Mitglieder, gemeinsame Einkaufsliste' : 'Gemeinsame Einkaufsliste für alle Mitglieder') + '</span></span>' + I('next') + '</a></section>' +
       '<section class="sec two-col"><div class="card-box"><h2 style="font-size:18px;margin-bottom:10px">Sichern & Übertragen</h2><p class="muted" style="font-size:14px;margin-top:0">Eigene Rezepte als Datei exportieren, um sie auf einem anderen Gerät zu importieren.</p>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-act="export">' + I('download', 'sm') + 'Exportieren</button><label class="btn" style="cursor:pointer">' + I('upload', 'sm') + 'Importieren<input type="file" accept="application/json,.json" data-change="import" hidden></label></div></div>' +
       '<div class="card-box"><h2 style="font-size:18px;margin-bottom:10px">Darstellung</h2><div class="chips">' +
       ['auto', 'light', 'dark'].map(function (t) { return '<button class="chip ' + (S.theme === t ? 'on' : '') + '" data-act="theme" data-v="' + t + '">' + { auto: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[t] + '</button>'; }).join('') + '</div>' +
-      '<p class="muted" style="font-size:13px;margin:14px 0 0">Favoriten, Notizen und eigene Rezepte bleiben in diesem Browser. Die Einkaufsliste und von Claude umgeschriebene Rezepte werden in der Claude-Version mit allen Eingeladenen geteilt.</p></div></section>' +
+      '<p class="muted" style="font-size:13px;margin:14px 0 0">Favoriten, Notizen und eigene Rezepte bleiben in diesem Browser. Die Einkaufsliste wird mit deiner Familie geteilt, sobald du eine gegründet hast oder beigetreten bist.</p></div></section>' +
       '<section class="sec"><div class="card-box"><h2 style="font-size:18px;margin-bottom:8px">Quellen & Lizenzen</h2><p class="muted" style="font-size:14px;margin:0">' + (window.KA_WEB_INDEX || []).length.toLocaleString('de-DE') + ' Rezepte stammen aus dem deutschen Wikibooks-Kochbuch und dem englischen Wikibooks Cookbook (Autorinnen und Autoren von Wikibooks, Lizenz CC BY-SA 4.0). Jede Rezeptseite verlinkt das Original. Die übrigen Rezepte, Animationen und Anrichte-Pläne gehören zu dieser App.</p></div></section>';
   }
 
@@ -882,9 +796,9 @@
     $$('#view .scene').forEach(function (s) { if (s.classList.contains('force') && s.closest('.home-hero')) return; if (io) io.observe(s); else s.classList.add('play'); });
   }
   function navState(p) {
-    var key = p === '/' ? 'home' : /^\/(entdecken|r\/|welt|anrichten)/.test(p) ? 'explore' : p.indexOf('/favoriten') === 0 ? 'favs' : p.indexOf('/einkauf') === 0 ? 'shop' : /^\/(meine|neu|bearbeiten)/.test(p) ? 'mine' : '';
+    var key = p === '/' ? 'home' : /^\/(entdecken|r\/|welt|anrichten)/.test(p) ? 'explore' : p.indexOf('/favoriten') === 0 ? 'favs' : (p.indexOf('/einkauf') === 0 || p.indexOf('/familie') === 0 || p.indexOf('/join') === 0) ? 'shop' : /^\/(meine|neu|bearbeiten)/.test(p) ? 'mine' : '';
     $$('.nav a').forEach(function (a) { a.classList.toggle('on', a.dataset.nav === key); });
-    var open = S.shop.filter(function (x) { return !x.done; }).length;
+    var open = shopItems().filter(function (x) { return !x.done; }).length;
     var c = $('.nav a[data-nav="shop"] .count'); if (c) { c.textContent = open; c.style.display = open ? '' : 'none'; }
     var fc = $('.nav a[data-nav="favs"] .count'); if (fc) { fc.textContent = S.favs.length; fc.style.display = S.favs.length ? '' : 'none'; }
   }
@@ -897,6 +811,8 @@
     else if ((m = p.match(/^\/r\/(.+)$/))) { var rid = decodeURIComponent(m[1]); html = vRecipe(rid); var rr = byId(rid); if (rr) title = rr.n + ' · Kochatlas'; }
     else if (p === '/favoriten') html = vFavs();
     else if (p === '/einkauf') html = vShop();
+    else if (p === '/familie') { html = vFamily(); title = 'Familie · Kochatlas'; }
+    else if ((m = p.match(/^\/join-([A-Za-z2-7-]+)$/))) { famUi.joinCode = SY.fmtCode(SY.normCode(m[1])); if (SY.state().family && SY.state().family.id === SY.normCode(m[1])) { location.replace('#familie'); return; } html = vFamily(); title = 'Familie beitreten · Kochatlas'; }
     else if (p === '/meine') html = vMine();
     else if (p === '/anrichten') { html = vSchool(); title = 'Anrichte-Schule · Kochatlas'; }
     else if (p === '/neu') html = vEdit(null);
@@ -908,11 +824,30 @@
     v.innerHTML = html; document.title = title;
     if (!keepScroll) { v.classList.remove('view-enter'); void v.offsetWidth; v.classList.add('view-enter'); }
     if (p === '/entdecken') renderResults();
-    observeScenes(); navState(p);
+    if (p === '/familie') drawQr();
+    observeScenes(); navState(p); if (!keepScroll) reveal();
     if (keepScroll) window.scrollTo(0, y); else if (lastPath !== p) window.scrollTo(0, 0);
     lastPath = p;
   }
   var hostTheme = document.documentElement.getAttribute('data-theme');
+  var revealIo = 'IntersectionObserver' in window && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); revealIo.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' }) : null;
+  function reveal() {
+    if (!revealIo) return;
+    var vh = window.innerHeight;
+    $$('#view .sec, #view .step, #view .card-box, #view .cat-grid, #view .grid').forEach(function (el) {
+      if (el.getBoundingClientRect().top < vh) return;
+      el.classList.add('rv'); revealIo.observe(el);
+    });
+  }
+  var fine = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (fine) {
+    document.addEventListener('pointermove', function (e) {
+      var c = e.target.closest && e.target.closest('.rcard'); if (!c) return;
+      var b = c.getBoundingClientRect(), x = (e.clientX - b.left) / b.width - 0.5, y = (e.clientY - b.top) / b.height - 0.5;
+      c.style.setProperty('--ry', (x * 10).toFixed(2) + 'deg'); c.style.setProperty('--rx', (-y * 10).toFixed(2) + 'deg');
+    });
+    document.addEventListener('pointerout', function (e) { var c = e.target.closest && e.target.closest('.rcard'); if (c && !c.contains(e.relatedTarget)) { c.style.setProperty('--rx', '0deg'); c.style.setProperty('--ry', '0deg'); } });
+  }
   function applyTheme() {
     var root = document.documentElement;
     if (S.theme === 'auto') { if (hostTheme) root.setAttribute('data-theme', hostTheme); else root.removeAttribute('data-theme'); } else root.setAttribute('data-theme', S.theme);
@@ -1009,25 +944,26 @@
       var step = function () { el.innerHTML = PLATE.svg(s.plan, k, k, false); k++; if (k < n) setTimeout(step, 700); };
       el.innerHTML = PLATE.svg(s.plan, -1, -1, false); setTimeout(step, 250);
     },
-    airun: function () { var id = decodeURIComponent(route().slice(3)), b = byId(id), sel = $('#aidev'); if (b && sel) runAi(b, sel.value); },
-    aistop: function () { if (aiRun) aiRun.ctl.abort(); },
     share: function () {
       var r = curRecipe();
       if (!r) return;
       var st = ui.rec[r.id] || { p: r.p }, f = st.p / (r.p || 4), dev = st.dev || r.devs[0];
       var txt = r.n + '\n\nZutaten (' + st.p + ' Portionen):\n' + (r.ing || []).map(function (x) { if (x[0] === '#') return '\n' + x.slice(1) + ':'; var y = splitIng(x, f); return '- ' + (y.q ? y.q + ' ' : '') + y.t; }).join('\n') +
         '\n\nZubereitung (' + DEV[dev].n + '):\n' + stepsFor(r, dev).map(function (s, i) { return (i + 1) + '. ' + s.t; }).join('\n');
-      shareText(r.n, txt, IN_CLAUDE ? '' : location.href);
+      shareText(r.n, txt, location.href);
     },
-    shoptoggle: function (el) { var x = S.shop[+el.dataset.i]; if (x) shopUpdate(x, { done: !x.done }).then(function () { if (!CAP.shopLive) render(true); }); },
-    shopdel: function (el) { var x = S.shop[+el.dataset.i]; if (x) shopDelete(x).then(function () { if (!CAP.shopLive) render(true); }); },
-    shopclean: function () { var done = S.shop.filter(function (x) { return x.done; }); Promise.all(done.map(shopDelete)).then(function () { if (!CAP.shopLive) render(true); }); },
+    shoptoggle: function (el) { var x = shopItems().filter(function (i) { return i.id === el.dataset.id; })[0]; if (x) SY.toggle(x); },
+    shopdel: function (el) { var x = shopItems().filter(function (i) { return i.id === el.dataset.id; })[0]; if (x) SY.remove(x); },
+    shopclean: function () { SY.clear(false); },
     shopclear: function (el) {
-      if (S.shop.length && !confirm2(el, CAP.shopLive ? 'Wirklich für alle löschen?' : 'Wirklich alles löschen?')) return;
-      Promise.all(S.shop.slice().map(shopDelete)).then(function () { if (!CAP.shopLive) render(true); });
+      if (shopItems().length && !confirm2(el, SY.state().family ? 'Wirklich für alle löschen?' : 'Wirklich alles löschen?')) return;
+      SY.clear(true);
     },
+    faminvite: function () { var st = SY.state(); shareText('Kochatlas: ' + st.family.name, 'Komm in unsere Kochatlas-Familie „' + st.family.name + '“, dann haben wir eine gemeinsame Einkaufsliste. Code: ' + SY.fmtCode(st.family.id), SY.inviteLink()); },
+    famcopy: function () { var l = SY.inviteLink(); try { navigator.clipboard.writeText(l).then(function () { toast('Link kopiert'); }, function () { showCopy(l); }); } catch (e) { showCopy(l); } },
+    famleave: function (el) { if (!confirm2(el, 'Wirklich verlassen? Nochmal tippen')) return; SY.leave(); toast('Familie verlassen. Die Liste ist jetzt wieder nur auf diesem Gerät.'); render(true); },
     shopshare: function () {
-      var txt = 'Einkaufsliste\n' + S.shop.filter(function (x) { return !x.done; }).map(function (x) { return '- ' + x.t; }).join('\n');
+      var txt = 'Einkaufsliste\n' + shopItems().filter(function (x) { return !x.done; }).map(function (x) { return '- ' + x.t; }).join('\n');
       shareText('Einkaufsliste', txt, '');
     },
     theme: function (el) { S.theme = el.dataset.v || ({ auto: 'dark', dark: 'light', light: 'auto' })[S.theme]; save('theme'); applyTheme(); if (route() === '/meine') render(true); toast('Darstellung: ' + { auto: 'Automatisch', light: 'Hell', dark: 'Dunkel' }[S.theme]); },
@@ -1037,13 +973,6 @@
     },
     export: function () {
       var data = JSON.stringify({ app: 'kochatlas', v: 1, recipes: S.own }, null, 2);
-      if (IN_CLAUDE) {
-        useCap('downloads').then(function (d) {
-          if (d) d.save({ filename: 'kochatlas-rezepte.json', data: data }).then(function () { toast('Gespeichert'); }, function () {});
-          else showCopy(data);
-        });
-        return;
-      }
       var blob = new Blob([data], { type: 'application/json' });
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'kochatlas-rezepte.json'; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
@@ -1089,7 +1018,17 @@
   document.addEventListener('submit', function (e) {
     var f = e.target.dataset.form; if (!f) return; e.preventDefault();
     if (f === 'search') { var q = $('#homeq').value; ui.f = F0(); ui.limit = 60; ui.f.q = q; if (route() === '/entdecken') render(); else location.hash = '#entdecken'; }
-    if (f === 'shopadd') { var v = $('#shopnew').value.trim(); if (v) { $('#shopnew').value = ''; shopAdd(v, '').then(function () { if (!CAP.shopLive) render(true); var n = $('#shopnew'); if (n) n.focus(); }); } }
+    if (f === 'shopadd') { var v = $('#shopnew').value.trim(); if (v) { SY.add(v.split(/\s*[,;]\s*|\n/).filter(Boolean).map(function (t) { return { t: t }; })); var n = $('#shopnew'); if (n) { n.value = ''; n.focus(); } } }
+    if (f === 'myname') { SY.setMyName($('#myname').value); toast('Name gespeichert'); }
+    if (f === 'famname') { SY.rename($('#famname').value); toast('Familienname gespeichert'); }
+    if (f === 'famcreate' || f === 'famjoin') {
+      var me = $(f === 'famcreate' ? '#fc_me' : '#fj_me').value.trim();
+      if (!me) { toast('Bitte deinen Namen eintragen'); return; }
+      famUi.busy = true; famUi.err = '';
+      var job = f === 'famcreate' ? SY.create($('#fc_name').value, me) : SY.join($('#fj_code').value, me);
+      job.then(function (fam) { famUi.busy = false; famUi.joinCode = ''; toast(f === 'famcreate' ? 'Familie „' + fam.name + '“ gegründet' : 'Willkommen bei „' + fam.name + '“'); location.hash = '#familie'; render(true); })
+        .catch(function (e) { famUi.busy = false; famUi.err = e.message || 'Hat nicht geklappt'; render(true); });
+    }
     if (f === 'edit') saveEdit(e.target);
     if (f === 'world') { online.q = $('#wq').value.trim(); online.area = ''; $$('[data-act="warea"]').forEach(function (b) { b.classList.remove('on'); }); if (online.q) worldLoad('search.php?s=' + encodeURIComponent(online.q), function (j) { return j.meals || []; }); }
   });
@@ -1111,17 +1050,25 @@
 
   /* ---------- Start ---------- */
   function init() {
-    S.shop.forEach(function (x) { if (!x.id) x.id = uid(); });
     $('#nav').innerHTML = [['home', '#start', 'home', 'Start'], ['explore', '#entdecken', 'compass', 'Entdecken'], ['favs', '#favoriten', 'heart', 'Favoriten'], ['shop', '#einkauf', 'cart', 'Einkauf'], ['mine', '#meine', 'book', 'Meine']]
       .map(function (n) { return '<a href="' + n[1] + '" data-nav="' + n[0] + '">' + I(n[2]) + '<span>' + n[3] + '</span>' + (n[0] === 'shop' || n[0] === 'favs' ? '<span class="count" style="display:none"></span>' : '') + '</a>'; }).join('');
-    $('#logo').innerHTML = '<span class="logo-mark">' + I('chef') + '</span>Kochatlas';
+    $('#logo').innerHTML = '<span class="logo-mark">' + I('flame') + '</span>Kochatlas';
     $('#searchbtn').innerHTML = I('search');
     applyTheme(); render();
-    initCaps();
-    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && window.self === window.top && !window.claude) {
+    var lastSig = '';
+    SY.on(function (st) {
+      navState(route());
+      var p = route(), sig = st.checked + '|' + st.backends.server + '|' + st.status + '|' + st.items.length + '|' + JSON.stringify(st.items.map(function (x) { return [x.id, x.done, x.pending]; })) + '|' + st.members.length + '|' + (st.family ? st.family.name : '') + '|' + st.error;
+      if (sig === lastSig) return; lastSig = sig;
+      if (p === '/einkauf') refreshShop();
+      else if ((p === '/familie' || /^\/join-/.test(p)) && !(document.activeElement && /^(fc_|fj_|myname|famname)/.test(document.activeElement.id || ''))) render(true);
+      else if (p === '/familie') { var pill = $('.sync-pill'); if (pill) pill.outerHTML = syncPill(); }
+    });
+    SY.init();
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && window.self === window.top) {
       navigator.serviceWorker.register('sw.js').catch(function () {});
     }
   }
-  window.KA = { all: all, liteAll: liteAll, byId: byId, stepsFor: stepsFor, splitIng: splitIng, loadChunk: loadChunk, cleanAi: cleanAi, aiPrompt: aiPrompt, viewOf: viewOf, S: S };
+  window.KA = { all: all, liteAll: liteAll, byId: byId, stepsFor: stepsFor, splitIng: splitIng, loadChunk: loadChunk, viewOf: viewOf, S: S, SYNC: SY };
   init();
 })();

@@ -1,0 +1,12 @@
+{
+  "name": "kochatlas",
+  "version": "2.0.0",
+  "description": "Kochbuch-Web-App mit animierten Geräte-Anleitungen, Sterneküche und Familien-Einkaufsliste",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server/server.js",
+    "test": "node server/test.js"
+  }
+}

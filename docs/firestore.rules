@@ -1,0 +1,23 @@
+rules_version = '2';
+// Sicherheitsregeln für Kochatlas mit Firebase Firestore.
+// Wer den 16-stelligen Familiencode kennt, darf die Liste dieser Familie lesen und schreiben.
+// Die Liste aller Familien ist für niemanden abrufbar.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function validId(hid) { return hid.matches('^[A-Z2-7]{16}$'); }
+    match /households/{hid} {
+      allow get: if validId(hid);
+      allow create: if validId(hid) && request.resource.data.name is string && request.resource.data.name.size() <= 60;
+      allow update: if validId(hid) && request.resource.data.keys().hasOnly(['name', 'created']) && request.resource.data.name.size() <= 60;
+      allow list, delete: if false;
+      match /items/{itemId} {
+        allow read, delete: if validId(hid) && exists(/databases/$(database)/documents/households/$(hid));
+        allow create, update: if validId(hid) && exists(/databases/$(database)/documents/households/$(hid))
+          && request.resource.data.t is string && request.resource.data.t.size() <= 200;
+      }
+      match /members/{memberId} {
+        allow read, write: if validId(hid) && exists(/databases/$(database)/documents/households/$(hid));
+      }
+    }
+  }
+}

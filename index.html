@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Kochatlas</title>
 <meta name="description" content="Kochbuch-App mit über 4500 Rezepten, animierten Schritt-für-Schritt-Anleitungen für jedes Küchengerät, Sterneküche mit Anrichte-Plänen und geteilter Einkaufsliste.">
-<meta name="theme-color" content="#ef4f2b">
+<meta name="theme-color" content="#07080b">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kochatlas">
 <link rel="manifest" href="manifest.webmanifest">
@@ -13,8 +13,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=JetBrains+Mono:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/scenes.css">
 </head>
 <body>
 <header class="topbar">
@@ -32,6 +33,7 @@
 <div class="timers" id="timers" aria-live="polite"></div>
 <div class="toast" id="toast" role="status"></div>
 
+<script src="config.js"></script>
 <script src="js/devices.js"></script>
 <script src="js/icons.js"></script>
 <script src="js/animations.js"></script>
@@ -50,6 +52,7 @@
 <script src="data/12-kreationen.js"></script>
 <script src="data/13-sterne.js"></script>
 <script src="data/web/index.js"></script>
+<script src="js/sync.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

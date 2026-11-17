@@ -1,57 +1,116 @@
 # Kochatlas
 
-Kochbuch-App im Browser mit Schritt-für-Schritt-Anleitungen für jedes Küchengerät. Jeder Arbeitsschritt hat eine eigene Animation, die zeigt, was zu tun ist (Schneiden, Rühren, Kneten, Thermomix mit laufendem Messer, Backofen mit Umluftventilator, Heißluftfritteuse und so weiter).
+Eigenständige Kochbuch-Web-App für Handy, Tablet und Computer (iPhone, Android, macOS, Windows, Linux). Läuft im Browser, lässt sich wie eine App auf den Startbildschirm legen und funktioniert offline. Keine Anmeldung, kein Konto, keine Abhängigkeit von einem KI-Dienst.
 
 ## Was drin ist
 
-- 4522 Rezepte aus über 120 Ländern und Regionen:
-  - 160 eigene Rezepte mit getrennten Anleitungen pro Gerät, davon 17 aus der Sterneküche (mit Anrichte-Plan) und 10 eigene Kreationen
+- 4522 Rezepte aus über 120 Ländern
+  - 160 eigene Rezepte mit getrennten Anleitungen pro Gerät, davon 17 aus der Sterneküche und 10 eigene Kreationen
   - 4362 Rezepte aus dem Internet: das komplette deutsche Wikibooks-Kochbuch (650) und das englische Wikibooks Cookbook (3712), Lizenz CC BY-SA, jeweils mit Link zum Original
-- Sterneküche: Jakobsmuscheln, Rinderfilet mit Fondant, confierter Lachs, Kalbsbäckchen, Entenbrust, Beef Tatar, Tomatenessenz, Zander mit Beurre blanc, Ravioli, Lammrücken, Schokoladen-Crémeux, Zitronentarte, Rote Bete in Texturen, Kürbis-Velouté sowie Kalbsjus, Beurre blanc und Hollandaise als Grundtechniken
-- Anrichte-Plan: Ein Teller von oben, auf dem jede Komponente nacheinander erscheint, mit Uhrzeit-Markierungen und Erklärung pro Handgriff. Dazu eine Anrichte-Schule mit 12 Grundtechniken (Swoosh, Quenelle, Punkte, Ringform, Fächern, Höhe …)
-- Gemeinsame Einkaufsliste: In der über Claude geteilten Version live für alle Eingeladenen, sonst lokal und als Text teilbar
-- Mit Claude umschreiben (nur in der Claude-Version): übersetzt englische Rezepte und schreibt jedes Rezept für ein anderes Gerät um, das Ergebnis wird für alle gespeichert
-- 340 Geräte-Anleitungen: getrennte Anleitungen für Herd, Backofen, Heißluftfritteuse, Thermomix, Mikrowelle, Schnellkochtopf, Slow Cooker, Grill, Sous-vide oder „ohne Kochen“
-- 37 animierte Techniken als SVG, jede Animation zeigt die Einstellungen des Schritts (Temperatur, Ofenmodus, Thermomix-Stufe, Linkslauf, Zeit)
-- Kochmodus im Vollbild mit Wischgesten, Pfeiltasten und eingeschaltetem Bildschirm
-- Timer an jedem Schritt mit Zeitangabe, mehrere gleichzeitig, mit Signalton und Vibration
-- Portionen umrechnen, Zutaten abhaken, fehlende Zutaten auf die Einkaufsliste
-- Favoriten, Notizen pro Rezept, heller und dunkler Modus
-- „Meine Küche“: Geräte auswählen, die man hat, die App filtert danach
-- Eigene Rezepte anlegen: Animation, Temperatur, Stufe und Timer werden aus dem Text erkannt (z. B. „200 °C Umluft“, „5 Min./100 °C/Linkslauf/Stufe 1“). Export und Import als JSON
-- Suche mit deutschen Begriffen findet auch englische Rezepte („Hähnchen“ findet „Chicken“)
-- Zusätzliche Live-Suche in TheMealDB (englisch, mit Fotos), Rezepte lassen sich in „Meine Rezepte“ übernehmen
-- Installierbar als App (PWA) und offline nutzbar
+- Anleitungen für Herd, Backofen, Heißluftfritteuse, Thermomix, Mikrowelle, Schnellkochtopf, Slow Cooker, Grill, Sous-vide oder ganz ohne Kochen
+- 37 animierte Techniken: Jeder Schritt zeigt, was zu tun ist, mit Temperatur, Ofenmodus, Thermomix-Stufe, Linkslauf, Kerntemperatur und Timer
+- Sterneküche mit Anrichte-Plan: Ein Teller von oben, auf dem jede Komponente nacheinander erscheint, dazu eine Anrichte-Schule mit 12 Grundtechniken
+- Familien: Eine Person gründet eine Familie und lädt per Code, Link oder QR-Code ein. Alle Mitglieder sehen die gemeinsame Einkaufsliste live, mit Namen, wer was eingetragen oder abgehakt hat. Ohne Netz wird gespeichert und später nachgesendet.
+- Kochmodus im Vollbild, mehrere Timer mit Ton und Vibration, Portionen umrechnen, Favoriten, Notizen, eigene Rezepte mit automatischer Schritterkennung, Hell und Dunkel
+- Suche auf Deutsch findet auch englische Rezepte („Hähnchen“ findet „Chicken“), dazu eine zusätzliche Live-Suche in TheMealDB
 
-Alle Daten (Favoriten, Einkaufsliste, Notizen, eigene Rezepte) bleiben im Browser des Geräts.
+## Schnellstart auf dem eigenen Rechner
 
-## Starten
-
-Keine Installation, kein Build-Schritt. Einen beliebigen Webserver im Projektordner starten, zum Beispiel:
+Node.js ab Version 18 installieren (nodejs.org), dann im Projektordner:
 
 ```
-python3 -m http.server 8000
+npm start
 ```
 
-Dann `http://localhost:8000` öffnen. Die Datei `index.html` lässt sich auch direkt im Browser öffnen, dann funktionieren nur Offline-Modus und Installation nicht.
+Die App läuft unter http://localhost:8080, inklusive Familien-Synchronisierung. Andere Geräte im selben WLAN erreichen sie über die IP-Adresse des Rechners, z. B. http://192.168.1.20:8080.
 
-Für das Handy: Den Ordner auf GitHub Pages, Netlify oder einem anderen statischen Hosting veröffentlichen und im Browser „Zum Startbildschirm hinzufügen“ wählen.
+## Für alle im Internet bereitstellen
+
+Damit Familien die App von überall nutzen können, muss sie auf einem Server laufen, der aus dem Internet erreichbar ist. Es gibt zwei Wege.
+
+### Weg 1: Eigener Kochatlas-Server (empfohlen)
+
+Der Server in `server/server.js` liefert die App aus und synchronisiert die Familienlisten. Er braucht nur Node.js, keine weiteren Pakete und keine Datenbank. Die Daten liegen als JSON-Dateien im Ordner `server-data/` (über `DATA_DIR` änderbar).
+
+Mit Docker:
+
+```
+docker build -t kochatlas .
+docker run -d -p 8080:8080 -v kochatlas-daten:/data --restart unless-stopped kochatlas
+```
+
+Geeignet sind zum Beispiel ein kleiner virtueller Server (ab etwa 4 Euro im Monat), ein Raspberry Pi oder ein NAS zu Hause. Für HTTPS einen Reverse-Proxy davorsetzen (Caddy oder nginx mit Let's Encrypt). HTTPS ist nötig, damit Handys die App installieren und offline nutzen können.
+
+Beispiel Caddy, komplette Konfiguration:
+
+```
+kochatlas.example.de {
+  reverse_proxy localhost:8080
+}
+```
+
+Wichtig bei kostenlosen Hosting-Angeboten: Viele löschen die Festplatte bei jedem Neustart. Dann gehen die Familienlisten verloren. Den Ordner `DATA_DIR` auf ein dauerhaftes Laufwerk legen.
+
+Einstellungen über Umgebungsvariablen:
+
+| Variable | Bedeutung | Standard |
+| --- | --- | --- |
+| `PORT` | Port | 8080 |
+| `HOST` | Adresse | 0.0.0.0 |
+| `DATA_DIR` | Ordner für die Familiendaten | ./server-data |
+| `CORS_ORIGIN` | erlaubte Herkunft, wenn die App woanders liegt als der Server | * |
+
+Liegt die App auf einem anderen Host (z. B. GitHub Pages) als der Server, in `config.js` die Serveradresse eintragen: `server: 'https://kochatlas.example.de'`.
+
+### Weg 2: Statisches Hosting plus Firebase (ohne eigenen Server)
+
+Die App selbst ist eine statische Website und läuft auf GitHub Pages, Netlify, Cloudflare Pages oder jedem Webspace. Für die Familien-Synchronisierung übernimmt dann Google Firebase Firestore die Rolle des Servers. Der kostenlose Tarif reicht für viele Familien.
+
+1. Unter console.firebase.google.com ein Projekt anlegen.
+2. Firestore Database erstellen (Produktionsmodus, Region z. B. europe-west3 Frankfurt).
+3. Unter Firestore > Regeln den Inhalt von `docs/firestore.rules` einfügen und veröffentlichen.
+4. Unter Projekteinstellungen > Allgemein > Deine Apps eine Web-App hinzufügen und die angezeigte Konfiguration in `config.js` bei `firebase:` eintragen, zum Beispiel:
+
+```js
+window.KOCHATLAS_CONFIG = {
+  sync: 'auto',
+  server: '',
+  firebase: { apiKey: '…', authDomain: '…', projectId: '…', appId: '…' }
+};
+```
+
+5. Den Projektordner hochladen (ohne `server/`, `server-data/` und `tools/`).
+
+Hinweis: Die Firebase-Anbindung ist geschrieben, aber nicht mit einem echten Firebase-Projekt getestet. Der eigene Server (Weg 1) ist vollständig getestet.
+
+### Ohne Synchronisierung
+
+Jeder statische Webspace reicht. Die Einkaufsliste bleibt dann auf dem jeweiligen Gerät und lässt sich als Text per Messenger teilen.
+
+## Sicherheit der Familien
+
+Der 16-stellige Familiencode ist der Schlüssel zur Liste (etwa 80 Bit Zufall, nicht erratbar). Wer ihn kennt, kann die Liste lesen und schreiben. Es gibt keine Konten und keine Passwörter. Die Liste aller Familien ist nicht abrufbar. Der Server begrenzt Anfragen pro IP, Textlängen, Listengröße und Mitgliederzahl.
 
 ## Aufbau
 
 ```
 index.html            Einstieg
-css/style.css         Design und alle Animationen (Keyframes)
+config.js             Einstellungen für die Synchronisierung
+css/style.css         Oberfläche
+css/scenes.css        Animationen
+js/sync.js            Familien-Synchronisierung (Server, Firebase, lokal, Offline-Warteschlange)
+js/app.js             Ansichten, Kochmodus, Timer, Editor, Suche
+js/animations.js      animierte SVG-Szenen
+js/plating.js         Anrichte-Pläne
 js/devices.js         Geräte, Kategorien, Techniken
-js/icons.js           Strich-Icons
-js/animations.js      SVG-Szenen für jede Technik
-js/app.js             Routing, Ansichten, Kochmodus, Timer, Editor, Online-Suche
-js/plating.js         Anrichte-Pläne (Teller von oben)
-data/*.js             eigene Rezepte, nach Kategorie aufgeteilt
-data/web/index.js     Suchindex der Internet-Rezepte
-data/web/chunk-*.js   Internet-Rezepte, werden bei Bedarf nachgeladen
-tools/import_wikibooks.py  Import-Skript für die Wikibooks-Rezepte
-sw.js                 Service Worker für den Offline-Modus
+js/icons.js           Icons
+data/*.js             eigene Rezepte
+data/web/             Wikibooks-Rezepte (Suchindex und nachgeladene Pakete)
+server/server.js      Kochatlas-Server
+server/test.js        Servertest (npm test)
+docs/firestore.rules  Sicherheitsregeln für Firebase
+tools/import_wikibooks.py  Import der Wikibooks-Rezepte
+sw.js                 Offline-Modus
 ```
 
 ## Rezepte ergänzen
@@ -72,32 +131,26 @@ R({
     tm: { t: 25, s: [
       ['tm', 'Soße 5 Min./100 °C/Linkslauf/Stufe 1.', { t: 5, c: 100, l: true, s: 1 }]
     ] }
-  },
-  tips: ['Optionaler Tipp']
+  }
 });
 ```
 
-Felder: `c` Kategorie (siehe `js/devices.js`), `d` Schwierigkeit 1 bis 3, `p` Portionen, `v` 0 = mit Fleisch/Fisch, 1 = vegetarisch, 2 = vegan. `prep` und `post` gelten für alle Geräte, `m` enthält die Schritte pro Gerät mit Gesamtzeit `t` in Minuten.
+Felder: `c` Kategorie (siehe `js/devices.js`), `d` Schwierigkeit 1 bis 3, `p` Portionen, `v` 0 = mit Fleisch/Fisch, 1 = vegetarisch, 2 = vegan. `prep` und `post` gelten für alle Geräte, `m` enthält die Schritte pro Gerät mit Gesamtzeit `t` in Minuten. Optional `plate` für einen Anrichte-Plan (Beispiele in `data/13-sterne.js`).
 
-Ein Schritt ist `[technik, text, optionen]`. Optionen: `t` Minuten, `sec` Sekunden, `c` Temperatur in °C oder `'Varoma'`, `mo` Ofenmodus (`OU`, `U`, `G`, `UG`), `h` Herdhitze (`max`, `hoch`, `mittel`, `niedrig`), `s` Thermomix-Stufe (Zahl, `'teig'`, `'sanft'`), `l` Linkslauf, `k` Kerntemperatur, `w` Watt, `lvl` Slow-Cooker-Stufe, `p` Druckstufe, `i` Ofeninhalt für die Animation (`cake`, `loaf`, `pizza`, `roast`, `tray`, `cookies`, `dish`).
-
-Technik-Schlüssel: prep, chop, grate, stir, boil, simmer, fry, flip, deepfry, bake, airfry, tm, whisk, mix, fold, knead, shape, rest, season, pour, serve, blend, grill, steam, roll, cool, chill, micro, slow, pressure, mash, spread, layer.
+Ein Schritt ist `[technik, text, optionen]`. Optionen: `t` Minuten, `sec` Sekunden, `c` Temperatur in °C oder `'Varoma'`, `mo` Ofenmodus (`OU`, `U`, `G`, `UG`), `h` Herdhitze (`max`, `hoch`, `mittel`, `niedrig`), `s` Thermomix-Stufe (Zahl, `'teig'`, `'sanft'`), `l` Linkslauf, `k` Kerntemperatur, `w` Watt, `lvl` Slow-Cooker-Stufe, `p` Druckstufe, `i` Ofeninhalt (`cake`, `loaf`, `pizza`, `roast`, `tray`, `cookies`, `dish`).
 
 ## Internet-Rezepte neu importieren
 
-Die Wikitexte werden mit der MediaWiki-API geladen (prop=revisions, 50 Seiten pro Anfrage) und als JSON `{Titel: Wikitext}` gespeichert, dann:
+Wikitexte mit der MediaWiki-API laden (prop=revisions, 50 Seiten pro Anfrage) und als JSON `{Titel: Wikitext}` speichern, dann:
 
 ```
 python3 tools/import_wikibooks.py de_raw.json en_raw.json data/web
 ```
 
-## Geteilte Einkaufsliste
-
-Die Live-Synchronisierung nutzt die Datenbank der veröffentlichten Claude-Version. Wer per E-Mail als Bearbeiter eingeladen ist, kann mitschreiben, alle sehen Änderungen sofort. In jeder anderen Umgebung (eigener Webserver, Datei) bleibt die Liste lokal und lässt sich als Text teilen.
-
 ## Hinweise
 
-- Die eigenen Kreationen sind neue Kombinationen aus erprobten Techniken. Als Ganzes wurden sie nicht in einer Testküche nachgekocht.
-- Thermomix-Angaben beziehen sich auf TM5 und TM6. Beim TM31 gehen höchstens 100 °C, Schritte mit 120 °C dann bei Varoma-Temperatur garen.
-- Heißluftfritteusen heizen je nach Modell unterschiedlich. Die Zeiten sind Richtwerte, beim ersten Mal nachsehen.
+- Die eigenen Kreationen sind neue Kombinationen aus erprobten Techniken, als Ganzes nicht in einer Testküche nachgekocht.
+- Thermomix-Angaben beziehen sich auf TM5 und TM6. Beim TM31 gehen höchstens 100 °C.
+- Heißluftfritteusen heizen je nach Modell unterschiedlich. Die Zeiten sind Richtwerte.
 - Thermomix ist eine Marke der Vorwerk SE & Co. KG. Diese App hat keine Verbindung zu Vorwerk.
+- Internet-Rezepte: Autorinnen und Autoren von Wikibooks, Lizenz CC BY-SA 4.0.

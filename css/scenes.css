@@ -1,0 +1,177 @@
+/* Kochatlas – animierte Szenen (SVG). Farben der Zeichnungen als Tokens. */
+:root {
+  --a-ink: #2a2522; --a-metal: #d6dbe1; --a-metal2: #a9b2bd; --a-dark: #59626e; --a-flame: #ff5a1f; --a-flame2: #ffc23d;
+  --a-water: #7cc8f2; --a-oil: #f5c95a; --a-food: #ff8a3a; --a-green: #5fc35a; --a-red: #e6463a; --a-dough: #f6dcab;
+  --a-crust: #d9944a; --a-wood: #cf975e; --a-wood2: #a8733f; --a-steam: rgba(90, 96, 110, .45); --a-glass: rgba(150, 205, 240, .38);
+  --a-body: #262a33; --a-body2: #3a404b; --a-screen: #070809; --a-led: #ff7a2a; --a-plate: #ffffff; --a-choc: #6b3f2a;
+  --a-cheese: #ffd166; --a-meat: #bf513a; --a-tm: #eef0f3; --a-bowl: #78b9dd; --a-bowl2: #5796bd; --a-skin: #f1c7a2; --a-butter: #ffe48c;
+  --a-dish: #c8673f; --a-towel: #ff4d6d;
+  --stage: radial-gradient(120% 90% at 50% 20%, #ffffff 0%, #e9ecf1 70%, #dde1e8 100%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --a-ink: #0b0c10; --a-steam: rgba(255, 255, 255, .32); --a-plate: #f1f2f4; --a-tm: #dfe3e8; --a-body: #3c424d; --a-body2: #545b68;
+    --stage: radial-gradient(120% 90% at 50% 15%, #3a404c 0%, #262a33 65%, #1a1d24 100%); }
+}
+:root[data-theme="dark"] { --a-ink: #0b0c10; --a-steam: rgba(255, 255, 255, .32); --a-plate: #f1f2f4; --a-tm: #dfe3e8; --a-body: #3c424d; --a-body2: #545b68;
+  --stage: radial-gradient(120% 90% at 50% 15%, #3a404c 0%, #262a33 65%, #1a1d24 100%); }
+.led { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace !important; filter: drop-shadow(0 0 3px rgba(255, 122, 42, .8)); }
+
+/* ===================== Szenen (Animationen) ===================== */
+.scene { overflow: visible; }
+.sc * { stroke: var(--a-ink); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.sc .ns, .sc text { stroke: none; }
+.scene:not(.play), .scene:not(.play) * { animation-play-state: paused !important; }
+.stv { fill: var(--a-body); }
+.met { fill: var(--a-metal); } .met2 { fill: var(--a-metal2); } .metd { fill: var(--a-dark); }
+.wat { fill: var(--a-water); } .oil { fill: var(--a-oil); } .sauce { fill: var(--a-red); } .liq { fill: var(--a-food); opacity: .9; } .mashf { fill: var(--a-dough); }
+.food { fill: var(--a-food); } .green { fill: var(--a-green); } .crust { fill: var(--a-crust); } .dough { fill: var(--a-dough); }
+.cheese { fill: var(--a-cheese); } .cheese2 { fill: #fff2b8; } .choc { fill: var(--a-choc); } .meat { fill: var(--a-meat); }
+.wood { fill: var(--a-wood); } .wood2 { fill: var(--a-wood2); } .tray { fill: var(--a-metal2); } .dish { fill: var(--a-dish); }
+.body { fill: var(--a-body); } .body2 { fill: var(--a-body2); } .tmb { fill: var(--a-tm); } .scr { fill: var(--a-screen); }
+.win { fill: #1b1511; } .glass { fill: var(--a-glass); } .glassln { fill: none; } .dishglass { fill: var(--a-glass); }
+.bowl { fill: var(--a-bowl); } .bowlin { fill: var(--a-bowl2); } .batter { fill: var(--a-dough); } .none { display: none; }
+.hand { fill: var(--a-skin); } .towel { fill: var(--a-towel); } .plate { fill: var(--a-plate); } .plate2 { fill: none; opacity: .25; }
+.bread { fill: var(--a-crust); } .butter { fill: var(--a-butter); } .fridge { fill: var(--a-plate); } .fridgeln { fill: none; }
+.clockf { fill: var(--a-plate); } .gauge { fill: var(--a-plate); } .spat { fill: var(--a-green); } .shredpile { fill: var(--a-cheese); }
+.hl { fill: none; stroke: rgba(255, 255, 255, .55) !important; }
+.cut { fill: none; stroke: #8a5523 !important; }
+.mark { fill: none; stroke: #3a2216 !important; stroke-width: 3 !important; }
+.rack, .rackln { fill: none; stroke: var(--a-metal2) !important; stroke-width: 3 !important; }
+.grid { stroke: var(--a-metal2) !important; stroke-width: 3 !important; }
+.leg { stroke-width: 4 !important; }
+.holes { fill: none; stroke: var(--a-dark) !important; stroke-width: 2.4 !important; }
+.wire { fill: none; }
+.hand2 { stroke-width: 2.5 !important; }
+.led { fill: var(--a-led); font: 700 12px ui-monospace, 'SF Mono', Menlo, Consolas, monospace; text-anchor: middle; }
+.led.sm { font-size: 9.5px; }
+.sc .fl { fill: var(--a-flame); stroke: none; transform-box: fill-box; transform-origin: 50% 100%; animation: fl .5s ease-in-out infinite; }
+.sc .fl2 { fill: var(--a-flame2); stroke: none; transform-box: fill-box; transform-origin: 50% 100%; animation: fl .36s ease-in-out infinite; }
+@keyframes fl { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(.88, 1.2); } }
+.sc .bub { fill: rgba(255, 255, 255, .8); stroke-width: 1.2; transform-box: fill-box; transform-origin: center; animation: bub 1.2s ease-out infinite; }
+.sc .bub.slow { animation-duration: 2.4s; } .sc .bub.fast { animation-duration: .7s; }
+@keyframes bub { 0% { transform: scale(0); opacity: 0; } 20% { opacity: 1; } 70% { transform: translateY(-3px) scale(1); } 100% { transform: translateY(-6px) scale(1.5); opacity: 0; } }
+.sc .bubq { transform-box: fill-box; transform-origin: center; animation: bubq 1.4s ease-in-out infinite; }
+@keyframes bubq { 0%, 100% { transform: scale(.6); } 50% { transform: scale(1.2); } }
+.sc .stm, .sc .stmj { fill: none; stroke: var(--a-steam); stroke-width: 3.2; animation: stm 2.4s ease-out infinite; }
+.sc .stm.slow { animation-duration: 3.6s; } .sc .stm.fast { animation-duration: 1.3s; } .sc .stm.smoke { stroke: rgba(130, 130, 140, .5); animation-duration: 3s; }
+@keyframes stm { 0% { transform: translateY(8px); opacity: 0; } 40% { opacity: .95; } 100% { transform: translateY(-20px); opacity: 0; } }
+.sc .rattle { transform-box: fill-box; transform-origin: 100% 100%; animation: rattle .9s ease-in-out infinite; }
+@keyframes rattle { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-2.5deg) translateY(-1px); } }
+.sc .swirl, .sc .vortex { fill: none; stroke: rgba(255, 255, 255, .7); stroke-dasharray: 10 8; animation: dash 1s linear infinite; }
+.sc .vortex { stroke-width: 2.5; }
+@keyframes dash { to { stroke-dashoffset: -36; } }
+.sc .ellx { animation: ellx calc(var(--d) / 2) ease-in-out infinite alternate; }
+.sc .ellx.rev { animation-direction: alternate-reverse; }
+.sc .elly { animation: elly calc(var(--d) / 2) ease-in-out calc(var(--d) / -4) infinite alternate; }
+@keyframes ellx { from { transform: translateX(-22px); } to { transform: translateX(22px); } }
+@keyframes elly { from { transform: translateY(-3px); } to { transform: translateY(4px); } }
+.sc .jig { transform-box: fill-box; transform-origin: center; animation: jig .6s ease-in-out infinite; }
+@keyframes jig { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px) rotate(-5deg); } }
+.sc .sz path { fill: none; opacity: 0; animation: blink .6s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: .85; } }
+.sc .toss { transform-box: fill-box; transform-origin: 100% 50%; animation: toss 1.8s ease-in-out infinite; }
+@keyframes toss { 0%, 60%, 100% { transform: rotate(0); } 15% { transform: rotate(5deg); } 30% { transform: rotate(-8deg); } }
+.sc .flipf { transform-box: fill-box; transform-origin: center; animation: flipf 1.8s ease-in-out infinite; }
+@keyframes flipf { 0%, 25% { transform: translateY(0) rotate(0); } 45% { transform: translateY(-52px) rotate(180deg); } 62%, 100% { transform: translateY(0) rotate(360deg); } }
+.sc .bob { transform-box: fill-box; transform-origin: center; animation: bob 1.4s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-4px) rotate(6deg); } }
+.sc .alt1 { animation: alt1 5s steps(1) infinite; } .sc .alt2 { animation: alt2 5s steps(1) infinite; }
+@keyframes alt1 { 0% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes alt2 { 0% { opacity: 0; } 50% { opacity: 1; } }
+.sc .glow { fill: var(--a-flame); opacity: .12; animation: glow 2.2s ease-in-out infinite; }
+.sc .glow2 { fill: var(--a-flame2); opacity: .15; animation: glow 1.6s ease-in-out infinite; }
+@keyframes glow { 50% { opacity: .32; } }
+.sc .heat { fill: none; stroke: #6b4a3a; stroke-width: 2.5; }
+.sc .heat.on { stroke: var(--a-flame); animation: heaton 1.4s ease-in-out infinite; }
+@keyframes heaton { 50% { stroke: var(--a-flame2); } }
+.sc .spin { animation: spin var(--d) linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.sc .fan * { fill: rgba(255, 255, 255, .16); stroke: rgba(255, 255, 255, .35); }
+.sc .fan2 * { fill: var(--a-metal2); stroke-width: 1; }
+.sc .rise { transform-box: fill-box; transform-origin: 50% 100%; animation: rise 3s ease-in-out infinite alternate; }
+.sc .riseslow { transform-box: fill-box; transform-origin: 50% 100%; animation: rise 4s ease-in-out infinite alternate; }
+@keyframes rise { from { transform: scale(.88, .7); } to { transform: scale(1, 1); } }
+.sc .air { fill: none; stroke: var(--a-flame2); stroke-width: 3; stroke-dasharray: 6 8; animation: dash .8s linear infinite; }
+.sc .blade { animation: blade var(--d) linear infinite; }
+.sc .blade.rev { animation-direction: reverse; }
+.sc .blade.jerk { animation-name: bladej; animation-duration: 1.4s; }
+@keyframes blade { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 100% { transform: scaleX(1); } }
+@keyframes bladej { 0%, 35% { transform: scaleX(1); } 50% { transform: scaleX(-1); } 65%, 100% { transform: scaleX(1); } }
+.sc .foam { fill: #fff8ec; transform-box: fill-box; transform-origin: center; animation: bubq 1s ease-in-out infinite; }
+.sc .wsk { transform-box: fill-box; transform-origin: 50% 0%; animation: wsk .5s ease-in-out infinite; }
+@keyframes wsk { 0%, 100% { transform: rotate(-16deg); } 50% { transform: rotate(16deg); } }
+.sc .vib { animation: vib .12s linear infinite; }
+@keyframes vib { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-1px, 1px); } 75% { transform: translate(1px, -1px); } }
+.sc .drop { fill: var(--a-dough); animation: jump .8s ease-out infinite; }
+.sc .sdrop { fill: var(--a-red); animation: jump .8s ease-out infinite; }
+@keyframes jump { 0%, 100% { transform: translateY(0); opacity: 0; } 50% { transform: translateY(-14px); opacity: 1; } }
+.sc .wave { fill: none; stroke: var(--a-crust); stroke-width: 3; animation: wave 1.6s ease-in-out infinite alternate; }
+@keyframes wave { from { transform: translateX(-6px); } to { transform: translateX(6px); } }
+.sc .fold { transform-box: fill-box; transform-origin: 50% 0%; animation: foldk 1.6s ease-in-out infinite; }
+@keyframes foldk { 0%, 100% { transform: rotate(-28deg); } 50% { transform: rotate(24deg); } }
+.sc .squish { transform-box: fill-box; transform-origin: 50% 100%; animation: squish 1.2s ease-in-out infinite; }
+@keyframes squish { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.12, .8); } }
+.sc .press { animation: press 1.2s ease-in-out infinite; }
+@keyframes press { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(12px); } }
+.sc .press2 { animation: press2 .9s ease-in-out infinite; }
+@keyframes press2 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(14px); } }
+.sc .flour { fill: #fff; stroke: none; animation: floaty 2s ease-in-out infinite; }
+@keyframes floaty { 0% { transform: translateY(0); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-16px); opacity: 0; } }
+.sc .rollb { animation: rollb 1s ease-in-out infinite alternate; }
+@keyframes rollb { from { transform: translateX(-12px); } to { transform: translateX(12px); } }
+.sc .stepx { animation: stepx 1.8s ease-in-out infinite; }
+@keyframes stepx { 0%, 30% { transform: translateX(0); } 33%, 63% { transform: translateX(-12px); } 66%, 96% { transform: translateX(-24px); } 100% { transform: translateX(0); } }
+.sc .chopk { animation: chop .6s ease-in infinite; }
+@keyframes chop { 0%, 100% { transform: translateY(0); } 40%, 55% { transform: translateY(16px); } }
+.sc .grate { animation: grate 1s ease-in-out infinite; }
+@keyframes grate { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(44px); } }
+.sc .shred { stroke: var(--a-cheese) !important; stroke-width: 2.5 !important; animation: fall 1s linear infinite; }
+.sc .grain { fill: var(--a-ink); stroke: none; animation: fall 1s linear infinite; }
+@keyframes fall { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(30px); opacity: 0; } }
+.sc .shake { transform-box: fill-box; transform-origin: center; animation: shake .4s ease-in-out infinite; }
+@keyframes shake { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-12deg); } }
+.sc .fill { animation: fillup 3s ease-in-out infinite; }
+@keyframes fillup { 0% { transform: translateY(16px); } 90%, 100% { transform: translateY(0); } }
+.sc .stream { stroke: var(--a-water) !important; stroke-width: 6 !important; stroke-dasharray: 10 6; animation: dash .5s linear infinite; }
+.sc .drop-in { animation: dropin2 3s ease-out infinite; }
+@keyframes dropin2 { 0% { transform: translateY(-40px); opacity: 0; } 30% { transform: translateY(0); opacity: 1; } 38% { transform: translateY(-4px); } 45%, 85% { transform: translateY(0); opacity: 1; } 100% { opacity: 0; } }
+.sc .spark { fill: var(--a-flame2); stroke: none; transform-box: fill-box; transform-origin: center; animation: twinkle 1.4s ease-in-out infinite; }
+@keyframes twinkle { 0%, 100% { transform: scale(.3); opacity: .2; } 50% { transform: scale(1); opacity: 1; } }
+.sc .coal { fill: var(--a-red); animation: coal 1.6s ease-in-out infinite; }
+@keyframes coal { 50% { fill: var(--a-flame); } }
+.sc .sizzle { animation: jig 1.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.sc .snow { fill: none; stroke: var(--a-water) !important; stroke-width: 3 !important; }
+.sc .pulse { transform-box: fill-box; transform-origin: center; animation: bubq 2s ease-in-out infinite; }
+.sc .mist { fill: none; stroke: var(--a-water) !important; opacity: .5; animation: wave 2s ease-in-out infinite alternate; }
+.sc .turn { transform-box: fill-box; transform-origin: 50% 100%; animation: turn 4s linear infinite; }
+@keyframes turn { 0% { transform: translateX(-22px) scale(.9); } 25% { transform: translateX(0) scale(1); } 50% { transform: translateX(22px) scale(.9); } 75% { transform: translateX(0) scale(.8); } 100% { transform: translateX(-22px) scale(.9); } }
+.sc .needle { animation: needle 1.6s ease-in-out infinite alternate; }
+@keyframes needle { from { transform: rotate(-60deg); } to { transform: rotate(60deg); } }
+.sc .jet { animation: jet 1.6s ease-out infinite; }
+@keyframes jet { 0%, 55%, 100% { opacity: 0; transform: translateY(4px); } 70% { opacity: 1; } 95% { opacity: 0; transform: translateY(-10px); } }
+.sc .dropin { animation: dropin 2.1s ease-in infinite; }
+@keyframes dropin { 0% { transform: translateY(-30px); opacity: 0; } 20% { opacity: 1; } 50% { transform: translateY(28px); opacity: 1; } 60%, 100% { transform: translateY(28px); opacity: 0; } }
+.sc .spread { transform-box: fill-box; transform-origin: center; animation: spread 2s ease-in-out infinite alternate; }
+@keyframes spread { from { transform: scaleX(.45); } to { transform: scaleX(1); } }
+.sc .rollx { animation: rollx 1s ease-in-out infinite alternate; }
+@keyframes rollx { from { transform: translateX(-28px); } to { transform: translateX(28px); } }
+.sc .lay { animation: lay 4s ease-out infinite both; }
+@keyframes lay { 0% { opacity: 0; transform: translateY(-18px); } 12%, 82% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .scene:not(.force), .scene:not(.force) * { animation-play-state: paused !important; } }
+
+/* Neue Techniken: Sous-vide, Abflämmen, Spritzbeutel, Passieren */
+.bag { fill: rgba(255, 255, 255, .35); }
+.cara { fill: #c9842f; animation: cara 3s ease-in-out infinite; }
+@keyframes cara { 0% { fill: #f2dfae; } 60%, 100% { fill: #b8701f; } }
+.sc .jetf { animation: vib .1s linear infinite; }
+.bagp { fill: #f4f1ea; }
+.sc .pdot { transform-box: fill-box; transform-origin: center; animation: pdot 2.6s ease-out infinite both; }
+@keyframes pdot { 0% { transform: scale(0); opacity: 0; } 12% { transform: scale(1.15); opacity: 1; } 18%, 86% { transform: scale(1); opacity: 1; } 100% { opacity: 0; } }
+.sc .pmove { animation: pmove 2.6s ease-in-out infinite; }
+@keyframes pmove { 0% { transform: translateX(-50px); } 75% { transform: translateX(34px); } 100% { transform: translateX(-50px); } }
+.sc .squeeze { transform-box: fill-box; transform-origin: 50% 0%; animation: squeeze .45s ease-in-out infinite; }
+@keyframes squeeze { 50% { transform: scale(.94, .97); } }
+.sieve { fill: var(--a-metal); }
+.mesh { fill: none; stroke: var(--a-dark) !important; stroke-width: 1.2 !important; opacity: .6; }
+.sc .drip { fill: var(--a-red); animation: fall .9s linear infinite; }
+

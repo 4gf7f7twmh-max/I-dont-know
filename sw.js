@@ -1,8 +1,8 @@
 /* Kochatlas Service Worker: App-Dateien offline verfügbar machen */
-const CACHE = 'kochatlas-v2';
+const CACHE = 'kochatlas-v3';
 const ASSETS = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png',
-  'js/devices.js', 'js/icons.js', 'js/animations.js', 'js/plating.js', 'js/app.js',
+  'config.js', 'js/devices.js', 'js/icons.js', 'js/animations.js', 'js/plating.js', 'js/sync.js', 'js/app.js', 'css/scenes.css',
   "data/01-fruehstueck.js",
   "data/02-suppen.js",
   "data/03-pasta.js",
@@ -27,6 +27,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
+  if (url.origin === location.origin && url.pathname.indexOf('/api/') >= 0) return;
   if (url.origin === location.origin) {
     // Netzwerk zuerst, damit Updates ankommen; offline aus dem Cache
     e.respondWith(fetch(e.request).then(res => {
