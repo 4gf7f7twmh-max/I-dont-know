@@ -4,6 +4,7 @@
 Stufe D: Wikidata. Gerichte mit Foto aus allen Sprachen (auch ohne deutschen oder englischen Wikipedia-Artikel).
          Angenommen nur bei gleichem Namen und wenn die Beschreibung ein Gericht nennt.
 Stufe C: Commons-Suche mit dem englischen Namen (deutsche Rezepte über tools/de_en_names.tsv).
+Stufe M: TheMealDB (offene Rezeptdatenbank, gleicher Name in beide Richtungen).
 Stufe O: Openverse (Flickr und andere Fotoplattformen, nur Creative-Commons- und gemeinfreie Fotos).
          Ohne Registrierung 200 Anfragen pro Tag; der Zwischenspeicher (CACHE) erlaubt Fortsetzen am nächsten Tag.
 
@@ -70,6 +71,29 @@ def commons_round(todo, de):
             if not GOOD_EXT.search(f) or BAD_NAME.search(f): continue
             if overlap_ok(want, tokens(re.sub(r'\.\w+$', '', f))): found[rid] = f; break
         if k % 200 == 0: print('  Commons', k, 'von', len(todo), '| Treffer', len(found), flush=True)
+    return found
+
+# ---------- Stufe M: TheMealDB (offene Rezeptdatenbank mit Fotos, öffentlicher Test-Schlüssel 1) ----------
+def mealdb_round(todo, de):
+    found = {}
+    for k, (rid, r) in enumerate(todo.items()):
+        q = query_name(r, de)
+        want = tokens(q)
+        if not want: continue
+        key = 'mealdb?' + q
+        if key not in _C:
+            try:
+                with urllib.request.urlopen(urllib.request.Request('https://www.themealdb.com/api/json/v1/1/search.php?' + urllib.parse.urlencode({'s': q}), headers=UA), timeout=30) as resp:
+                    _C[key] = json.loads(resp.read().decode('utf8'))
+            except Exception:
+                continue
+            time.sleep(0.5)
+        for m in (_C[key].get('meals') or []):
+            name = m.get('strMeal') or ''
+            if overlap_ok(want, tokens(name)) and overlap_ok(tokens(name), want) and m.get('strMealThumb'):
+                found[rid] = [m['strMealThumb'], 'TheMealDB', '', 'https://www.themealdb.com/meal/' + m['idMeal'], 'm']; break
+        if k % 200 == 0: print('  TheMealDB', k, 'von', len(todo), '| Treffer', len(found), flush=True)
+    flush()
     return found
 
 # ---------- Stufe O: Openverse ----------
@@ -144,6 +168,10 @@ def main():
     for rid, f in cfiles.items():
         if f in cred: art, lic, th = cred[f]; new[rid] = [short_path(th), clean_artist(art), lic, f, 'c']
     print('nach Commons:', len(new), flush=True)
+
+    rest = {rid: r for rid, r in todo.items() if rid not in new}
+    new.update(mealdb_round(rest, de))
+    print('nach TheMealDB:', len(new), flush=True)
 
     if '--ohne-openverse' not in sys.argv:
         mx = int(sys.argv[sys.argv.index('--openverse-max') + 1]) if '--openverse-max' in sys.argv else 195
