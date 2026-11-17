@@ -14,8 +14,8 @@ import json, re, sys, os, time, html, urllib.request, urllib.parse, urllib.error
 
 UA = {'User-Agent': 'KochatlasImageMatcher/1.0 (recipe app; low-volume batch)', 'Accept-Encoding': 'identity'}
 THUMB_PREFIXES = ['https://thumb.wikimedia.org/wikipedia/commons/thumb/', 'https://upload.wikimedia.org/wikipedia/commons/thumb/']
-GOOD_EXT = re.compile(r'\.(jpe?g|webp)$', re.I)
-BAD_NAME = re.compile(r'(map|logo|flag|diagram|coat.of.arms|icon|symbol|chart|locator|svg|plant|field|tree|flower|blossom|seeds?\b)', re.I)
+GOOD_EXT = re.compile(r'\.(jpe?g|webp|png)$', re.I)
+BAD_NAME = re.compile(r'(?<![a-z])(maps?|logo|flag|diagram|coat.of.arms|icon|symbol|chart|locator|svg|plants?(?![-_ ]?based)|field|trees?|flowers?|blossoms?|seeds?|types.of|var(?=[._ ])|cultivar|harvest)(?![a-z])', re.I)
 
 def api(host, params, tries=8):
     params = dict(params, format='json', formatversion='2', maxlag='5')
@@ -57,12 +57,12 @@ def chunks(lst, n):
 BUILTIN = {
     'pancakes': 'en:Pancake', 'ruehrei': 'en:Scrambled eggs', 'eier-kochen': 'en:Boiled egg', 'shakshuka': 'en:Shakshouka',
     'overnight-oats': 'en:Overnight oats', 'french-toast': 'en:French toast', 'granola': 'en:Granola',
-    'kuerbissuppe': 'en:Pumpkin soup', 'tomatensuppe': 'en:Tomato soup', 'kartoffelsuppe': 'de:Kartoffelsuppe', 'dal': 'en:Dal',
+    'kuerbissuppe': 'en:Pumpkin soup', 'tomatensuppe': 'en:Tomato soup', 'kartoffelsuppe': 'de:Kartoffelsuppe', 
     'ramen': 'en:Ramen', 'pho': 'en:Pho', 'minestrone': 'en:Minestrone', 'gulaschsuppe': 'de:Gulaschsuppe', 'huehnersuppe': 'en:Chicken soup',
     'gazpacho': 'en:Gazpacho', 'misosuppe': 'en:Miso soup', 'zwiebelsuppe': 'en:French onion soup', 'tom-kha-gai': 'en:Tom kha kai',
     'carbonara': 'en:Carbonara', 'bolognese': 'en:Bolognese sauce', 'aglio-olio': 'en:Aglio e olio', 'lasagne': 'en:Lasagna',
     'mac-cheese': 'en:Macaroni and cheese', 'pesto': 'en:Pesto', 'cacio-e-pepe': 'en:Cacio e pepe', 'arrabbiata': 'en:Arrabbiata sauce',
-    'kaesespaetzle': 'en:Käsespätzle', 'gnocchi': 'en:Gnocchi', 'pad-thai': 'en:Pad thai', 'spaghetti-pomodoro': 'en:Spaghetti al pomodoro',
+    'kaesespaetzle': 'en:Käsespätzle', 'gnocchi': 'en:Gnocchi', 'pad-thai': 'en:Pad thai', 'spaghetti-pomodoro': 'en:Pasta al pomodoro',
     'schnitzel': 'en:Wiener schnitzel', 'gulasch': 'en:Goulash', 'rouladen': 'en:Rouladen', 'brathaehnchen': 'en:Roast chicken',
     'chicken-wings': 'en:Buffalo wing', 'butter-chicken': 'en:Butter chicken', 'chili-con-carne': 'en:Chili con carne',
     'schweinebraten': 'de:Schweinebraten', 'burger': 'en:Hamburger', 'pulled-pork': 'en:Pulled pork', 'koettbullar': 'en:Swedish meatballs',
@@ -96,6 +96,12 @@ BUILTIN = {
 
 # ---------- Namen säubern ----------
 PREFIX = re.compile(r"^(easy|basic|simple|classic|traditional|homemade|home-made|quick|best|my|mom'?s|mum'?s|grandma'?s|granny'?s|authentic|old-fashioned|perfect|ultimate|delicious|fresh|einfache?r?s?|schnelle?r?s?|klassische?r?s?|omas?|leckere?r?s?)\s+", re.I)
+GENERIC = {'flour', 'chocolate', 'maize', 'sweet corn', 'barbecue', 'grilling', 'soy sauce', 'sauce', 'bread', 'soup', 'cake', 'pie', 'cookie', 'biscuit',
+           'salad', 'curry', 'stew', 'dough', 'pastry', 'spice', 'herb', 'meat', 'vegetable', 'fruit', 'nut', 'oil', 'vinegar', 'black pepper', 'sugar',
+           'honey', 'cooked rice', 'rice', 'potato', 'egg as food', 'chicken as food', 'beef', 'pork', 'cheese', 'milk', 'butter', 'jam', 'candy',
+           'confectionery', 'dessert', 'breakfast', 'sandwich', 'noodle', 'pasta', 'dumpling', 'pancake', 'mehl', 'brot', 'suppe', 'kuchen', 'gebäck',
+           'soße', 'salat', 'gemüse', 'fleisch', 'kartoffel', 'reis', 'nudel', 'teigwaren', 'süßspeise', 'nachspeise', 'beverage', 'drink', 'cocktail',
+           'baking powder', 'yeast', 'spice mix', 'seasoning', 'condiment', 'tofu', 'bean', 'lentil', 'chickpea'}
 RAW_WORDS = {'chicken', 'beef', 'pork', 'lamb', 'fish', 'rice', 'potato', 'potatoes', 'egg', 'eggs', 'salt', 'sugar', 'flour', 'water', 'milk',
              'butter', 'cheese', 'onion', 'garlic', 'tomato', 'tomatoes', 'apple', 'apples', 'banana', 'corn', 'beans', 'tofu', 'duck', 'turkey',
              'huhn', 'reis', 'kartoffel', 'kartoffeln', 'ei', 'eier', 'zwiebel', 'apfel', 'milch', 'mehl', 'zucker', 'käse'}
@@ -128,7 +134,10 @@ def lookup(host, titles):
         redir = {r['from']: r['to'] for r in q.get('redirects', [])}
         pages = {pg['title']: pg for pg in q.get('pages', [])}
         for t in part:
-            x = norm.get(t, t); x = redir.get(x, x); pg = pages.get(x)
+            n0 = norm.get(t, t); x = redir.get(n0, n0); pg = pages.get(x)
+            if x != n0:
+                tl = x.lower()
+                if tl in GENERIC or not (set(re.findall(r'[a-zäöüß]{4,}', tl)) & set(re.findall(r'[a-zäöüß]{4,}', n0.lower()))): continue
             if not pg or pg.get('missing') or 'disambiguation' in (pg.get('pageprops') or {}): continue
             img, th = pg.get('pageimage'), (pg.get('thumbnail') or {}).get('source')
             if img and th and GOOD_EXT.search(img) and not BAD_NAME.search(img): res[t] = (img, th)
