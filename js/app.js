@@ -98,7 +98,7 @@
   function webLite(e) {
     var devs = webDevs(e[9] || 'h');
     return {
-      id: e[0], n: e[1], c: e[2], k: e[3], v: e[4], minTime: e[5], lang: e[6], chunk: e[7], hasImg: e[8], web: true, im: e[10] ? [e[10][0], '', '', e[10][1], ''] : null,
+      id: e[0], n: e[1], c: e[2], k: e[3], v: e[4], minTime: e[5], lang: e[6], chunk: e[7], hasImg: e[8], web: true, im: e[10] ? [e[10][0], '', '', e[10][1], e[10][2] || ''] : null,
       devs: [devs[0]], needs: devs.slice(1), d: 2,
       _search: fold(e[1] + ' ' + e[3] + ' ' + ((CATS[e[2]] || {}).n || ''))
     };
@@ -114,19 +114,23 @@
   function photoUrl(im, w) {
     if (!im || !im[0]) return '';
     if (/^data:/.test(im[0])) return im[0];   /* eigenes Foto */
+    if (im[4] === 'o') {                       /* Openverse (meist Flickr): Größe über das Namenskürzel */
+      return /staticflickr\.com/.test(im[0]) && w && w <= 640 ? im[0].replace(/_[bc]\.jpg$/, '_z.jpg') : im[0];
+    }
     if (/^https?:/.test(im[0]) && im[0].indexOf('/thumb/') < 0 && im[3]) /* kleines Original: passende Größe über Commons */
       return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(String(im[3]).replace(/ /g, '_')) + '?width=' + (w || 960);
     var u = /^https?:/.test(im[0]) ? im[0] : THUMB + im[0];
     return w && w !== 960 ? u.replace(/\/960px-/, '/' + w + 'px-') : u;
   }
-  function photoLabel(im) { return im[4] === 'u' ? 'Eigenes Foto' : im[4] === 'm' ? 'Foto von TheMealDB' : im[4] === 'a' ? 'Ähnliches Gericht' : (im[4] === 'w' || im[4] === 'c') ? 'Beispielfoto' : 'Foto aus dem Rezept'; }
+  function photoLabel(im) { return im[4] === 'u' ? 'Eigenes Foto' : im[4] === 'm' ? 'Foto von TheMealDB' : im[4] === 'a' ? 'Ähnliches Gericht' : (im[4] === 'w' || im[4] === 'c' || im[4] === 'o' || im[4] === 'd') ? 'Beispielfoto' : 'Foto aus dem Rezept'; }
   function photoTag(im, w, cls) { return '<img class="' + (cls || 'web-img') + '" src="' + esc(photoUrl(im, w)) + '" alt="" loading="lazy" decoding="async" onerror="this.remove()">'; }
   function photoCredit(im) {
     if (!im) return '';
     if (im[4] === 'u') return '<p class="photo-credit"><b>Eigenes Foto.</b> Nur auf diesem Gerät gespeichert.</p>';
+    if (im[4] === 'o') return '<p class="photo-credit"><b>Beispielfoto</b> des Gerichts, zeigt nicht genau diese Zubereitung. Foto: ' + esc(im[1] || 'unbekannt') + ', ' + esc(im[2]) + ', <a href="' + esc(im[3]) + '" target="_blank" rel="noopener">Quelle</a> (gefunden über Openverse)</p>';
     if (im[4] === 'm') return '<p class="photo-credit">Foto: TheMealDB (themealdb.com)</p>';
     var lead = im[4] === 'a' ? '<b>Ähnliches Gericht.</b> Dieses Rezept gibt es so nirgends als Foto, das Bild zeigt das nächstverwandte Gericht. ' :
-      (im[4] === 'w' || im[4] === 'c') ? '<b>Beispielfoto</b> des Gerichts, zeigt nicht genau diese Zubereitung. ' : '<b>Foto aus dem Rezept.</b> ';
+      (im[4] === 'w' || im[4] === 'c' || im[4] === 'd') ? '<b>Beispielfoto</b> des Gerichts, zeigt nicht genau diese Zubereitung. ' : '<b>Foto aus dem Rezept.</b> ';
     return '<p class="photo-credit">' + lead +
       'Foto: ' + esc(im[1]) + ', <a href="https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(String(im[3]).replace(/ /g, '_')) + '" target="_blank" rel="noopener">' + esc(im[2]) + '</a>, Wikimedia Commons</p>';
   }

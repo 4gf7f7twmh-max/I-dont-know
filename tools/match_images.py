@@ -240,7 +240,7 @@ def main():
     t = open('data/web/index.js').read(); idx = json.loads(t[t.index('=') + 1:t.rindex(';')])
     for e in idx:
         e[8] = 1 if e[0] in chosen else 0
-        del e[10:]; e.append([entry(e[0])[0], entry(e[0])[3]] if e[0] in chosen else 0)
+        del e[10:]; e.append([entry(e[0])[0], entry(e[0])[3], entry(e[0])[4]] if e[0] in chosen else 0)
     open('data/web/index.js', 'w').write(t[:t.index('=') + 1] + json.dumps(idx, ensure_ascii=False, separators=(',', ':')) + ';\n')
     print('FERTIG eigene', len(bi), 'von', len(builtin), '| web', n_web, 'von', len(web), flush=True)
 
