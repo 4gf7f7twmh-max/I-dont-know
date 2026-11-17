@@ -113,18 +113,16 @@
   var THUMB = 'https://thumb.wikimedia.org/wikipedia/commons/thumb/';
   function photoUrl(im, w) {
     if (!im || !im[0]) return '';
-    if (/^(data:|img\/)/.test(im[0])) return im[0];   /* eigenes Foto oder KI-Bild aus dem Projekt */
+    if (/^data:/.test(im[0])) return im[0];   /* eigenes Foto */
     if (/^https?:/.test(im[0]) && im[0].indexOf('/thumb/') < 0 && im[3]) /* kleines Original: passende Größe über Commons */
       return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(String(im[3]).replace(/ /g, '_')) + '?width=' + (w || 960);
     var u = /^https?:/.test(im[0]) ? im[0] : THUMB + im[0];
     return w && w !== 960 ? u.replace(/\/960px-/, '/' + w + 'px-') : u;
   }
-  function isAi(im) { return im[4] === 'k' || /^img\/ki\//.test(im[0]); }
-  function photoLabel(im) { return isAi(im) ? 'KI-Bild' : im[4] === 'u' ? 'Eigenes Foto' : im[4] === 'm' ? 'Foto von TheMealDB' : im[4] === 'a' ? 'Ähnliches Gericht' : (im[4] === 'w' || im[4] === 'c') ? 'Beispielfoto' : 'Foto aus dem Rezept'; }
+  function photoLabel(im) { return im[4] === 'u' ? 'Eigenes Foto' : im[4] === 'm' ? 'Foto von TheMealDB' : im[4] === 'a' ? 'Ähnliches Gericht' : (im[4] === 'w' || im[4] === 'c') ? 'Beispielfoto' : 'Foto aus dem Rezept'; }
   function photoTag(im, w, cls) { return '<img class="' + (cls || 'web-img') + '" src="' + esc(photoUrl(im, w)) + '" alt="" loading="lazy" decoding="async" onerror="this.remove()">'; }
   function photoCredit(im) {
     if (!im) return '';
-    if (isAi(im)) return '<p class="photo-credit"><b>KI-Bild.</b> Für dieses Rezept gibt es kein freies Foto. Das Bild wurde mit einer Bild-KI (Stable Diffusion, Modell DreamShaper 8) aus dem Rezeptnamen erzeugt und zeigt nicht das Ergebnis genau dieser Zubereitung.</p>';
     if (im[4] === 'u') return '<p class="photo-credit"><b>Eigenes Foto.</b> Nur auf diesem Gerät gespeichert.</p>';
     if (im[4] === 'm') return '<p class="photo-credit">Foto: TheMealDB (themealdb.com)</p>';
     var lead = im[4] === 'a' ? '<b>Ähnliches Gericht.</b> Dieses Rezept gibt es so nirgends als Foto, das Bild zeigt das nächstverwandte Gericht. ' :
