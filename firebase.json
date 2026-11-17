@@ -1,0 +1,25 @@
+{
+  "firestore": {
+    "rules": "docs/firestore.rules"
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "**/.*",
+      "**/node_modules/**",
+      "server/**",
+      "server-data/**",
+      "tools/**",
+      "docs/**",
+      "Dockerfile",
+      "package.json",
+      "README.md"
+    ],
+    "headers": [
+      { "source": "**/*.@(js|css)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }] },
+      { "source": "@(index.html|sw.js|config.js)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
+  }
+}
