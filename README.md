@@ -5,13 +5,13 @@ Eigenständige Kochbuch-Web-App für Handy, Tablet und Computer (iPhone, Android
 ## Was drin ist
 
 - 4522 Rezepte aus über 120 Ländern
-  - 160 eigene Rezepte mit getrennten Anleitungen pro Gerät, davon 17 aus der Sterneküche und 10 eigene Kreationen
+  - 193 eigene Rezepte mit getrennten Anleitungen pro Gerät, davon 24 aus der Sterneküche, 18 eigene Kreationen und 18 schnelle Gerichte, die in höchstens 25 Minuten fertig sind
   - 4362 Rezepte aus dem Internet: das komplette deutsche Wikibooks-Kochbuch (650) und das englische Wikibooks Cookbook (3712), Lizenz CC BY-SA, jeweils mit Link zum Original. Bei den englischen Rezepten sind Name und Zutaten ins Deutsche übersetzt und US-Maße in Gramm und Milliliter umgerechnet, die Zubereitung steht im Original
 - Anleitungen für Herd, Backofen, Heißluftfritteuse, Thermomix, Mikrowelle, Schnellkochtopf, Slow Cooker, Grill, Sous-vide oder ganz ohne Kochen
 - 37 animierte Techniken: Jeder Schritt zeigt, was zu tun ist, mit Temperatur, Ofenmodus, Thermomix-Stufe, Linkslauf, Kerntemperatur und Timer
 - Sterneküche mit Anrichte-Plan: Ein Teller von oben, auf dem jede Komponente nacheinander erscheint, dazu eine Anrichte-Schule mit 12 Grundtechniken
 - Familien: Eine Person gründet eine Familie und lädt per Code, Link oder QR-Code ein. Alle Mitglieder sehen die gemeinsame Einkaufsliste live, mit Namen, wer was eingetragen oder abgehakt hat. Ohne Netz wird gespeichert und später nachgesendet.
-- Echte Fotos für 3229 Rezepte: alle 160 eigenen Rezepte und 3069 der 4362 Rezepte aus dem Netz. 799 Wikibooks-Rezepte haben ihr eigenes Foto, die übrigen ein Foto des Gerichts aus Wikipedia, Wikimedia Commons, Wikidata oder TheMealDB. Beispielfotos sind als solche markiert, jedes Foto nennt Fotograf und Lizenz. 1293 Rezepte haben noch kein Foto und zeigen das Symbol ihrer Kategorie. Im Kochmodus zeigt der letzte Schritt, wie das Gericht aussehen soll.
+- Echte Fotos für 3262 Rezepte: alle 193 eigenen Rezepte und 3069 der 4362 Rezepte aus dem Netz. 799 Wikibooks-Rezepte haben ihr eigenes Foto, die übrigen ein Foto des Gerichts aus Wikipedia, Wikimedia Commons, Wikidata oder TheMealDB. Beispielfotos sind als solche markiert, jedes Foto nennt Fotograf und Lizenz. 1293 Rezepte haben noch kein Foto und zeigen das Symbol ihrer Kategorie. Im Kochmodus zeigt der letzte Schritt, wie das Gericht aussehen soll.
 - Kochmodus im Vollbild, mehrere Timer mit Ton und Vibration, Portionen umrechnen, Favoriten, Notizen, eigene Rezepte mit automatischer Schritterkennung, Hell und Dunkel
 - Suche auf Deutsch findet auch englische Rezepte („Hähnchen“ findet „Chicken“), dazu eine zusätzliche Live-Suche in TheMealDB
 
@@ -113,6 +113,7 @@ docs/firestore.rules  Sicherheitsregeln für Firebase
 tools/import_wikibooks.py  Import der Wikibooks-Rezepte
 tools/match_images*.py     Fotozuordnung
 tools/photo_filter.py      Prüfung der gefundenen Fotos
+tools/add_photos.py        Commons-Fotos für neue eigene Rezepte in data/images.js eintragen
 tools/translate_en.py      Übersetzung der englischen Rezepte (Namen, Zutaten)
 tools/translations/        Übersetzungstabellen
 sw.js                 Offline-Modus
