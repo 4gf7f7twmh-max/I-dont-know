@@ -55,6 +55,7 @@
   function norm(r) {
     if (r._n) return r;
     if (!r.im && window.KA_IMG && window.KA_IMG[r.id]) r.im = window.KA_IMG[r.id];
+    if (r.price === undefined && window.PRICE) r.price = PRICE.estimate(r.ing, r.p);
     r.m = r.m || {};
     r.devs = Object.keys(r.m);
     r.minTime = Infinity;
@@ -98,7 +99,7 @@
   function webLite(e) {
     var devs = webDevs(e[9] || 'h');
     return {
-      id: e[0], n: e[1], c: e[2], k: e[3], v: e[4], minTime: e[5], lang: e[6], chunk: e[7], hasImg: e[8], web: true, im: e[10] ? [e[10][0], '', '', e[10][1], e[10][2] || ''] : null,
+      id: e[0], n: e[1], c: e[2], k: e[3], v: e[4], minTime: e[5], lang: e[6], chunk: e[7], hasImg: e[8], price: e[12] || null, web: true, im: e[10] ? [e[10][0], '', '', e[10][1], e[10][2] || ''] : null,
       devs: [devs[0]], needs: devs.slice(1), d: 2,
       _search: fold(e[1] + ' ' + (e[11] || '') + ' ' + e[3] + ' ' + ((CATS[e[2]] || {}).n || ''))
     };
@@ -142,7 +143,7 @@
     var steps = x.s.map(function (t) { return autoStep(t, prim, x.l); });
     var est = steps.reduce(function (s, st) { return s + (st[2].t || 0); }, 0);
     var r = {
-      id: id, n: x.n, c: x.c, k: x.k || '', p: x.p || 4, d: x.d || 2, v: x.v || 0, desc: x.desc, ing: x.g, tips: x.x, on: x.on,
+      id: id, n: x.n, c: x.c, k: x.k || '', p: x.p || 4, d: x.d || 2, v: x.v || 0, desc: x.desc, ing: x.g, tips: x.x, on: x.on, price: e[12] || (window.PRICE ? PRICE.estimate(x.g, x.p) : null),
       web: true, lang: x.l, im: x.im, srcUrl: x.u, needs: devs.slice(1),
       src: 'Wikibooks-Kochbuch (' + (x.l === 'de' ? 'deutsch' : 'englisch') + '), Lizenz CC BY-SA', m: {}
     };
@@ -313,8 +314,19 @@
     return '<a class="rcard" href="#r-' + esc(r.id) + '" style="--h:' + hue(r) + '">' +
       '<div class="rvis">' + I('c_' + (CATS[r.c] || CATS.welt).ic) + '<span class="initials">' + esc(initials) + '</span>' + img + badge +
       '<button class="fav-btn ' + (isFav(r.id) ? 'on' : '') + '" data-act="fav" data-id="' + esc(r.id) + '" aria-label="Favorit">' + I('heart') + '</button></div>' +
-      '<div class="rbody"><h3>' + esc(r.n) + '</h3><div class="rmeta">' + (r.k ? '<span>' + esc(r.k) + '</span>' : '') + (r.minTime ? '<span>' + I('clock', 'sm') + fmtTime(r.minTime) + '</span>' : '') + (r.web ? '' : '<span>' + DIFF[r.d || 1] + '</span>') + '</div>' +
+      '<div class="rbody"><h3>' + esc(r.n) + '</h3><div class="rmeta">' + (r.k ? '<span>' + esc(r.k) + '</span>' : '') + (r.minTime ? '<span>' + I('clock', 'sm') + fmtTime(r.minTime) + '</span>' : '') + (r.web ? '' : '<span>' + DIFF[r.d || 1] + '</span>') + priceChip(r) + '</div>' +
       '<div class="rdevs">' + r.devs.concat(r.needs || []).map(function (d) { return '<span class="d ' + (S.devices.indexOf(d) >= 0 ? 'mine' : '') + '" title="' + esc(DEV[d] ? DEV[d].n : d) + '">' + I('d_' + d) + '</span>'; }).join('') + '</div></div></a>';
+  }
+  /* Preis: geschätzt aus den Zutaten (js/prices.js), angezeigt immer für 4 Personen */
+  function priceChip(r) {
+    var L = r.price && window.PRICE ? PRICE.label(r.price) : null;
+    return L ? '<span class="price-chip" title="Geschätzter Preis für 4 Personen, pro Portion ' + esc(L.per) + '">' + esc(L.four.replace('ca. ', '')) + ' · 4 Pers.</span>' : '';
+  }
+  function priceBar(r) {
+    var L = r.price && window.PRICE ? PRICE.label(r.price) : null;
+    if (!L) return '';
+    return '<div class="pricebar"><div><span class="pl">Für 4 Personen</span><b>' + esc(L.four) + '</b></div><div><span class="pl">Pro Portion</span><b>' + esc(L.per) + '</b></div>' +
+      '<p>Geschätzt aus den Zutaten nach üblichen Supermarktpreisen, vom Discounter bis zur Markenware. Gewürze und Vorräte sind anteilig eingerechnet. Echte Preise schwanken je nach Laden und Saison.</p></div>';
   }
   function devTile(d, on, act) {
     return '<button class="dev-tile ' + (on ? 'on' : '') + '" data-act="' + act + '" data-dev="' + d + '" aria-pressed="' + on + '">' + I('d_' + d) + '<span><b>' + DEV[d].n + '</b><small>' + DEV[d].sub + '</small></span></button>';
@@ -402,7 +414,8 @@
       empf: function (a, b) { return rank(a) - rank(b) || a.n.localeCompare(b.n, 'de'); },
       name: function (a, b) { return a.n.localeCompare(b.n, 'de'); },
       time: function (a, b) { return (a.minTime || 9999) - (b.minTime || 9999); },
-      diff: function (a, b) { return (a.d || 2) - (b.d || 2); }
+      diff: function (a, b) { return (a.d || 2) - (b.d || 2); },
+      price: function (a, b) { return (a.price ? a.price[0] : 999) - (b.price ? b.price[0] : 999); }
     }[f.sort] || function () { return 0; };
     if (q) {
       res.sort(function (a, b) { var an = fold(a.n).indexOf(q) >= 0 ? 0 : 1, bn = fold(b.n).indexOf(q) >= 0 ? 0 : 1; return an - bn || srt(a, b); });
@@ -422,7 +435,7 @@
       chip('ft', '0', String(f.time), 'Jede Dauer') + chip('ft', '30', String(f.time), '≤ 30 Min') + chip('ft', '60', String(f.time), '≤ 1 Std') + '</div>' +
       '<div class="filter-bar"><select class="input" data-change="fk" aria-label="Küche"><option value="">Alle Länder</option>' +
       Object.keys(cuis).sort(function (a, b) { return a.localeCompare(b, 'de'); }).map(function (k) { return '<option ' + (f.cuisine === k ? 'selected' : '') + '>' + esc(k) + '</option>'; }).join('') + '</select>' +
-      '<select class="input" data-change="fs" aria-label="Sortierung">' + [['empf', 'Empfohlen'], ['name', 'A–Z'], ['time', 'Schnellste zuerst'], ['diff', 'Einfachste zuerst']].map(function (o) { return '<option value="' + o[0] + '"' + (f.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
+      '<select class="input" data-change="fs" aria-label="Sortierung">' + [['empf', 'Empfohlen'], ['name', 'A–Z'], ['time', 'Schnellste zuerst'], ['diff', 'Einfachste zuerst'], ['price', 'Günstigste zuerst']].map(function (o) { return '<option value="' + o[0] + '"' + (f.sort === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<label class="toggle"><input type="checkbox" data-change="fm" ' + (S.onlyMine ? 'checked' : '') + '> Nur für meine Geräte</label></div></div>' +
       '<div id="results"></div>';
   }
@@ -493,7 +506,7 @@
         '<div class="rhero-art" aria-hidden="true">' + (heroStep ? ANIM.scene(heroStep.a, heroStep.o, ctx).replace('class="scene', 'class="scene play force') : '') + '</div>') + '</div>' +
       (heroImg ? photoCredit(r.im) : '') +
       '<div class="rstats"><div class="rstat">' + I('clock') + '<b>' + fmtTime(m.t) + '</b><span>Gesamtzeit</span></div><div class="rstat">' + I('bars') + '<b>' + DIFF[r.d || 1] + '</b><span>Schwierigkeit</span></div>' +
-      '<div class="rstat">' + I('list') + '<b>' + steps.length + '</b><span>Schritte</span></div><div class="rstat">' + I('c_leaf') + '<b>' + (r.v === 2 ? 'Vegan' : r.v === 1 ? 'Vegetarisch' : r.web ? 'Siehe Zutaten' : 'Mit Fleisch/Fisch') + '</b><span>Ernährung</span></div></div>' +
+      '<div class="rstat">' + I('list') + '<b>' + steps.length + '</b><span>Schritte</span></div><div class="rstat">' + I('c_leaf') + '<b>' + (r.v === 2 ? 'Vegan' : r.v === 1 ? 'Vegetarisch' : r.web ? 'Siehe Zutaten' : 'Mit Fleisch/Fisch') + '</b><span>Ernährung</span></div></div>' + priceBar(r) +
       (r.c === 'kreation' ? '<div class="kreation-note">' + I('spark') + '<div><b>Eigene Kreation.</b> Diese Kombination habe ich mir ausgedacht. Die einzelnen Techniken sind erprobt, das Rezept als Ganzes wurde nicht in einer Testküche nachgekocht.</div></div>' : '') +
       (r.web ? '<div class="info" style="margin-bottom:6px">Quelle: <a href="' + esc(r.srcUrl) + '" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">' + esc(base.n) + '</a> aus dem ' + esc(r.src) + '. Die Animationen und Timer ordnet die App automatisch zu.</div>' : r.src ? '<div class="info" style="margin-bottom:14px">Quelle: ' + esc(r.src) + '</div>' : '') +
       (r.lang === 'en' ? '<div class="info" style="margin:0 0 14px">' + I('info', 'sm') + ' Aus dem englischen Wikibooks Cookbook' + (r.on ? ' („' + esc(r.on) + '“)' : '') + '. Name und Zutaten sind übersetzt, US-Maße in Gramm und Milliliter umgerechnet, 1 Tasse sind etwa 240 ml. Die Zubereitung steht im englischen Original. Animationen, Timer und Temperaturen ordnet die App automatisch zu.</div>' : '') +
@@ -824,7 +837,7 @@
     var steps = txt.map(function (x) { return autoStep(x, '', 'en'); });
     var dev = steps.some(function (s) { return s[0] === 'bake'; }) ? 'ofen' : 'herd';
     var catMap = { Dessert: 'dessert', Pasta: 'pasta', Seafood: 'fisch', Vegetarian: 'veggie', Vegan: 'veggie', Breakfast: 'fruehstueck', Starter: 'snacks', Side: 'beilagen', Beef: 'fleisch', Chicken: 'fleisch', Lamb: 'fleisch', Pork: 'fleisch', Goat: 'fleisch', Miscellaneous: 'welt' };
-    var r = { id: 'web-' + m.idMeal, n: m.strMeal, desc: '', c: catMap[m.strCategory] || 'welt', k: AREAS[m.strArea] || m.strArea || m.strCountry || '', p: 4, d: 2, v: m.strCategory === 'Vegan' ? 2 : m.strCategory === 'Vegetarian' ? 1 : 0, ing: ing, m: {}, lang: 'en', src: 'TheMealDB (englischer Originaltext)' + (m.strSource ? ', ' + m.strSource : '') };
+    var r = { id: 'web-' + m.idMeal, n: m.strMeal, desc: '', c: catMap[m.strCategory] || 'welt', k: AREAS[m.strArea] || m.strArea || m.strCountry || '', p: 4, d: 2, v: m.strCategory === 'Vegan' ? 2 : m.strCategory === 'Vegetarian' ? 1 : 0, ing: ing, m: {}, price: null, lang: 'en', src: 'TheMealDB (englischer Originaltext)' + (m.strSource ? ', ' + m.strSource : '') };
     r.m[dev] = { t: Math.max(20, steps.reduce(function (s, x) { return s + (x[2].t || 0); }, 0)), s: steps };
     return r;
   }

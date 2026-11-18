@@ -1,8 +1,8 @@
 /* Kochatlas Service Worker: App-Dateien offline verfügbar machen */
-const CACHE = 'kochatlas-v9';
+const CACHE = 'kochatlas-v10';
 const ASSETS = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png',
-  'config.js', 'js/devices.js', 'js/icons.js', 'js/animations.js', 'js/plating.js', 'js/sync.js', 'js/app.js', 'css/scenes.css',
+  'config.js', 'js/devices.js', 'js/icons.js', 'js/animations.js', 'js/plating.js', 'js/sync.js', 'js/prices.js', 'js/app.js', 'css/scenes.css',
   "data/01-fruehstueck.js",
   "data/02-suppen.js",
   "data/03-pasta.js",

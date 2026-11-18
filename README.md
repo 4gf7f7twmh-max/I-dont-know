@@ -9,6 +9,7 @@ Eigenständige Kochbuch-Web-App für Handy, Tablet und Computer (iPhone, Android
   - 4362 Rezepte aus dem Internet: das komplette deutsche Wikibooks-Kochbuch (650) und das englische Wikibooks Cookbook (3712), Lizenz CC BY-SA, jeweils mit Link zum Original. Bei den englischen Rezepten sind Name und Zutaten ins Deutsche übersetzt und US-Maße in Gramm und Milliliter umgerechnet, die Zubereitung steht im Original
 - Anleitungen für Herd, Backofen, Heißluftfritteuse, Thermomix, Mikrowelle, Schnellkochtopf, Slow Cooker, Grill, Sous-vide oder ganz ohne Kochen
 - 37 animierte Techniken: Jeder Schritt zeigt, was zu tun ist, mit Temperatur, Ofenmodus, Thermomix-Stufe, Linkslauf, Kerntemperatur und Timer
+- Geschätzter Preis bei jedem Rezept: pro Portion und immer für 4 Personen, als Spanne vom Discounter bis zur Markenware. Die Schätzung rechnet die Zutaten mit eigenen Durchschnittspreisen für deutsche Supermärkte (`js/prices.js`) zusammen, für die Internet-Rezepte vorab berechnet mit `node tools/compute_prices.js`. In der Suche lässt sich nach „Günstigste zuerst“ sortieren.
 - Sterneküche mit Anrichte-Plan: Ein Teller von oben, auf dem jede Komponente nacheinander erscheint, dazu eine Anrichte-Schule mit 12 Grundtechniken
 - Familien: Eine Person gründet eine Familie und lädt per Code, Link oder QR-Code ein. Alle Mitglieder sehen die gemeinsame Einkaufsliste live, mit Namen, wer was eingetragen oder abgehakt hat. Ohne Netz wird gespeichert und später nachgesendet.
 - Echte Fotos für 3262 Rezepte: alle 193 eigenen Rezepte und 3069 der 4362 Rezepte aus dem Netz. 799 Wikibooks-Rezepte haben ihr eigenes Foto, die übrigen ein Foto des Gerichts aus Wikipedia, Wikimedia Commons, Wikidata oder TheMealDB. Beispielfotos sind als solche markiert, jedes Foto nennt Fotograf und Lizenz. 1293 Rezepte haben noch kein Foto und zeigen das Symbol ihrer Kategorie. Im Kochmodus zeigt der letzte Schritt, wie das Gericht aussehen soll.
@@ -114,6 +115,8 @@ tools/import_wikibooks.py  Import der Wikibooks-Rezepte
 tools/match_images*.py     Fotozuordnung
 tools/photo_filter.py      Prüfung der gefundenen Fotos
 tools/add_photos.py        Commons-Fotos für neue eigene Rezepte in data/images.js eintragen
+tools/compute_prices.js    Preisschätzung für die Internet-Rezepte (Spalte 13 im Suchindex)
+js/prices.js               Preistabelle und Schätzung
 tools/translate_en.py      Übersetzung der englischen Rezepte (Namen, Zutaten)
 tools/translations/        Übersetzungstabellen
 sw.js                 Offline-Modus
