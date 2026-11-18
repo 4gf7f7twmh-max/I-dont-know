@@ -163,13 +163,13 @@ def main():
 
     chosen = {}  # rid -> (host, datei, quelle)
     for host, lang in (('en.wikipedia.org', 'en'), ('de.wikipedia.org', 'de')):
-        sub = {rid: r['n'] for rid, r in todo.items() if r['l'] == lang and rid not in chosen}
+        sub = {rid: r.get('on', r['n']) for rid, r in todo.items() if r['l'] == lang and rid not in chosen}
         for rid, (img, th) in wiki_round(host, sub).items(): chosen[rid] = (host, img.replace('_', ' '), 'w')
     # deutsche Rezepte zusätzlich in der englischen Wikipedia (viele Gerichtsnamen sind international)
-    sub = {rid: r['n'] for rid, r in todo.items() if r['l'] == 'de' and rid not in chosen}
+    sub = {rid: r.get('on', r['n']) for rid, r in todo.items() if r['l'] == 'de' and rid not in chosen}
     for rid, (img, th) in wiki_round('en.wikipedia.org', sub).items(): chosen[rid] = ('en.wikipedia.org', img.replace('_', ' '), 'w')
     print('nach Wikipedia:', len(chosen), flush=True)
-    rest = {rid: r['n'] for rid, r in todo.items() if rid not in chosen}
+    rest = {rid: r.get('on', r['n']) for rid, r in todo.items() if rid not in chosen}
     for rid, f in commons_round(rest).items(): chosen[rid] = ('commons.wikimedia.org', f, 'c')
     print('nach Commons:', len(chosen), flush=True)
 
@@ -193,11 +193,11 @@ def main():
     t = open('data/web/index.js').read(); idx = json.loads(t[t.index('=') + 1:t.rindex(';')])
     for e in idx:
         im = imgs.get(e[0]); e[8] = 1 if im else 0
-        del e[10:]; e.append([im[0], im[3], im[4]] if im else 0)
+        e[10:11] = [[im[0], im[3], im[4]] if im else 0]   # e[11] (Originalname) bleibt erhalten
     open('data/web/index.js', 'w').write(t[:t.index('=') + 1] + json.dumps(idx, ensure_ascii=False, separators=(',', ':')) + ';\n')
     print('FERTIG neu:', n, '| mit Foto gesamt:', len(imgs), 'von', len(web), flush=True)
     flush()
-    json.dump({rid: list(v) + [LOG.get(rid, ''), next(r['n'] for r in web if r['i'] == rid)] for rid, v in chosen.items()},
+    json.dump({rid: list(v) + [LOG.get(rid, ''), next(r.get('on', r['n']) for r in web if r['i'] == rid)] for rid, v in chosen.items()},
               open(os.environ.get('MATCH_LOG', '/dev/null'), 'w'), ensure_ascii=False)
 
 if __name__ == '__main__':

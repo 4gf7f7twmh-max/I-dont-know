@@ -30,14 +30,14 @@ def overlap_ok(want, have):
     return len(want & set(have)) >= need
 
 def query_name(r, de):
-    return de.get(r['n']) if r['l'] == 'de' and de.get(r['n']) else clean_name(r['n'])
+    return de.get(r.get('on', r['n'])) if r['l'] == 'de' and de.get(r.get('on', r['n'])) else clean_name(r.get('on', r['n']))
 
 # ---------- Stufe D: Wikidata ----------
 def wikidata_round(todo, de):
     hits = {}
     for k, (rid, r) in enumerate(todo.items()):
         q = query_name(r, de)
-        cands = [(q, 'en')] + ([(clean_name(r['n']), 'de')] if r['l'] == 'de' else [])
+        cands = [(q, 'en')] + ([(clean_name(r.get('on', r['n'])), 'de')] if r['l'] == 'de' else [])
         for text, lang in cands:
             d = api('www.wikidata.org', {'action': 'wbsearchentities', 'search': text, 'language': lang, 'uselang': 'en', 'type': 'item', 'limit': '7'})
             for e in d.get('search', []):
@@ -155,7 +155,7 @@ def main():
         t = open('data/web/' + f).read(); a = t.index('KA_WEB_CHUNK(')
         data[f] = (t[:a], int(t[a + 13:t.index(',', a)]), json.loads(t[t.index(',', a) + 1:t.rindex(')')]))
     web = {r['i']: r for f in cf for r in data[f][2]}
-    todo = {rid: r for rid, r in web.items() if not r.get('im') and r['n'] not in ('Rezeptvorlage Text', 'Vorlage:Rezept')}
+    todo = {rid: r for rid, r in web.items() if not r.get('im') and r.get('on', r['n']) not in ('Rezeptvorlage Text', 'Vorlage:Rezept')}
     print('ohne Foto:', len(todo), 'von', len(web), flush=True)
     new = {}
 
@@ -184,7 +184,7 @@ def main():
 
     # Prüfung wie in photo_filter.py; Protokoll im selben Format [host, datei, quelle, titel, name]
     HOST = {'d': 'commons.wikimedia.org', 'c': 'commons.wikimedia.org', 'm': 'www.themealdb.com', 'o': 'api.openverse.org'}
-    log = {rid: [HOST[im[4]], im[3], im[4], TITLE.get(rid, ''), web[rid]['n']] for rid, im in new.items()}
+    log = {rid: [HOST[im[4]], im[3], im[4], TITLE.get(rid, ''), web[rid].get('on', web[rid]['n'])] for rid, im in new.items()}
     bad = photo_filter.judge(log)
     print('Prüfung: abgelehnt', len(bad), 'von', len(new), flush=True)
     if os.environ.get('MATCH_LOG'):
@@ -203,7 +203,7 @@ def main():
     t = open('data/web/index.js').read(); idx = json.loads(t[t.index('=') + 1:t.rindex(';')])
     for e in idx:
         im = imgs.get(e[0]); e[8] = 1 if im else 0
-        del e[10:]; e.append([im[0], im[3], im[4]] if im else 0)
+        e[10:11] = [[im[0], im[3], im[4]] if im else 0]   # e[11] (Originalname) bleibt erhalten
     open('data/web/index.js', 'w').write(t[:t.index('=') + 1] + json.dumps(idx, ensure_ascii=False, separators=(',', ':')) + ';\n')
     print('FERTIG neu:', len(new), '| mit Foto gesamt:', len(imgs), 'von', len(web), flush=True)
 

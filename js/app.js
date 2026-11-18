@@ -61,7 +61,7 @@
     r.devs.forEach(function (k) { if (r.m[k].t < r.minTime) r.minTime = r.m[k].t; });
     if (!isFinite(r.minTime)) r.minTime = 0;
     r.v = r.v || 0;
-    r._search = fold([r.n, r.desc, r.k, (CATS[r.c] || {}).n, (r.ing || []).join(' '), (r.tags || []).join(' ')].join(' '));
+    r._search = fold([r.n, r.on || '', r.desc, r.k, (CATS[r.c] || {}).n, (r.ing || []).join(' '), (r.tags || []).join(' ')].join(' '));
     r._n = true;
     return r;
   }
@@ -100,7 +100,7 @@
     return {
       id: e[0], n: e[1], c: e[2], k: e[3], v: e[4], minTime: e[5], lang: e[6], chunk: e[7], hasImg: e[8], web: true, im: e[10] ? [e[10][0], '', '', e[10][1], e[10][2] || ''] : null,
       devs: [devs[0]], needs: devs.slice(1), d: 2,
-      _search: fold(e[1] + ' ' + e[3] + ' ' + ((CATS[e[2]] || {}).n || ''))
+      _search: fold(e[1] + ' ' + (e[11] || '') + ' ' + e[3] + ' ' + ((CATS[e[2]] || {}).n || ''))
     };
   }
   var _lite = null;
@@ -142,7 +142,7 @@
     var steps = x.s.map(function (t) { return autoStep(t, prim, x.l); });
     var est = steps.reduce(function (s, st) { return s + (st[2].t || 0); }, 0);
     var r = {
-      id: id, n: x.n, c: x.c, k: x.k || '', p: x.p || 4, d: x.d || 2, v: x.v || 0, desc: x.desc, ing: x.g, tips: x.x,
+      id: id, n: x.n, c: x.c, k: x.k || '', p: x.p || 4, d: x.d || 2, v: x.v || 0, desc: x.desc, ing: x.g, tips: x.x, on: x.on,
       web: true, lang: x.l, im: x.im, srcUrl: x.u, needs: devs.slice(1),
       src: 'Wikibooks-Kochbuch (' + (x.l === 'de' ? 'deutsch' : 'englisch') + '), Lizenz CC BY-SA', m: {}
     };
@@ -496,7 +496,7 @@
       '<div class="rstat">' + I('list') + '<b>' + steps.length + '</b><span>Schritte</span></div><div class="rstat">' + I('c_leaf') + '<b>' + (r.v === 2 ? 'Vegan' : r.v === 1 ? 'Vegetarisch' : r.web ? 'Siehe Zutaten' : 'Mit Fleisch/Fisch') + '</b><span>Ernährung</span></div></div>' +
       (r.c === 'kreation' ? '<div class="kreation-note">' + I('spark') + '<div><b>Eigene Kreation.</b> Diese Kombination habe ich mir ausgedacht. Die einzelnen Techniken sind erprobt, das Rezept als Ganzes wurde nicht in einer Testküche nachgekocht.</div></div>' : '') +
       (r.web ? '<div class="info" style="margin-bottom:6px">Quelle: <a href="' + esc(r.srcUrl) + '" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">' + esc(base.n) + '</a> aus dem ' + esc(r.src) + '. Die Animationen und Timer ordnet die App automatisch zu.</div>' : r.src ? '<div class="info" style="margin-bottom:14px">Quelle: ' + esc(r.src) + '</div>' : '') +
-      (r.lang === 'en' ? '<div class="info" style="margin:0 0 14px">' + I('info', 'sm') + ' Englischer Originaltext aus dem Wikibooks Cookbook. Animationen, Timer und Temperaturen ordnet die App automatisch zu.</div>' : '') +
+      (r.lang === 'en' ? '<div class="info" style="margin:0 0 14px">' + I('info', 'sm') + ' Aus dem englischen Wikibooks Cookbook' + (r.on ? ' („' + esc(r.on) + '“)' : '') + '. Name und Zutaten sind übersetzt, US-Maße in Gramm und Milliliter umgerechnet, 1 Tasse sind etwa 240 ml. Die Zubereitung steht im englischen Original. Animationen, Timer und Temperaturen ordnet die App automatisch zu.</div>' : '') +
       '<section class="devpick"><h2>Womit kochst du?</h2><div class="devtabs">' + r.devs.map(function (d) {
         return '<button class="devtab ' + (d === dev ? 'on ' : '') + (S.devices.indexOf(d) < 0 && d !== 'kalt' ? 'notmine' : '') + '" data-act="tab" data-dev="' + d + '">' + I('d_' + d) + '<span><b>' + DEV[d].n + (r.m[d].ai ? ' ✦' : '') + '</b><small>' + fmtTime(r.m[d].t) + '</small></span></button>';
       }).join('') + '</div>' + (r.needs && r.needs.length && !m.ai ? '<p class="muted" style="font-size:13.5px;margin:6px 0 0">Laut Anleitung außerdem nötig: ' + r.needs.map(function (d) { return DEV[d].n; }).join(', ') + '</p>' : '') + '</section>' +

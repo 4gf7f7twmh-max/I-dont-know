@@ -6,7 +6,7 @@ Eigenständige Kochbuch-Web-App für Handy, Tablet und Computer (iPhone, Android
 
 - 4522 Rezepte aus über 120 Ländern
   - 160 eigene Rezepte mit getrennten Anleitungen pro Gerät, davon 17 aus der Sterneküche und 10 eigene Kreationen
-  - 4362 Rezepte aus dem Internet: das komplette deutsche Wikibooks-Kochbuch (650) und das englische Wikibooks Cookbook (3712), Lizenz CC BY-SA, jeweils mit Link zum Original
+  - 4362 Rezepte aus dem Internet: das komplette deutsche Wikibooks-Kochbuch (650) und das englische Wikibooks Cookbook (3712), Lizenz CC BY-SA, jeweils mit Link zum Original. Bei den englischen Rezepten sind Name und Zutaten ins Deutsche übersetzt und US-Maße in Gramm und Milliliter umgerechnet, die Zubereitung steht im Original
 - Anleitungen für Herd, Backofen, Heißluftfritteuse, Thermomix, Mikrowelle, Schnellkochtopf, Slow Cooker, Grill, Sous-vide oder ganz ohne Kochen
 - 37 animierte Techniken: Jeder Schritt zeigt, was zu tun ist, mit Temperatur, Ofenmodus, Thermomix-Stufe, Linkslauf, Kerntemperatur und Timer
 - Sterneküche mit Anrichte-Plan: Ein Teller von oben, auf dem jede Komponente nacheinander erscheint, dazu eine Anrichte-Schule mit 12 Grundtechniken
@@ -113,6 +113,8 @@ docs/firestore.rules  Sicherheitsregeln für Firebase
 tools/import_wikibooks.py  Import der Wikibooks-Rezepte
 tools/match_images*.py     Fotozuordnung
 tools/photo_filter.py      Prüfung der gefundenen Fotos
+tools/translate_en.py      Übersetzung der englischen Rezepte (Namen, Zutaten)
+tools/translations/        Übersetzungstabellen
 sw.js                 Offline-Modus
 ```
 
@@ -148,7 +150,10 @@ Wikitexte mit der MediaWiki-API laden (prop=revisions, 50 Seiten pro Anfrage) un
 
 ```
 python3 tools/import_wikibooks.py de_raw.json en_raw.json data/web
+python3 tools/translate_en.py
 ```
+
+`tools/translate_en.py` übersetzt Namen und Zutaten der englischen Rezepte mit den Tabellen in `tools/translations/` (englisch TAB deutsch). Mengen und Einheiten rechnet das Skript selbst um: Unzen, Pfund, Pints und US-Butterstangen in Gramm bzw. Milliliter, Esslöffel und Teelöffel in EL und TL, Tassen bleiben Tassen. Der Originalname bleibt im Feld `on` und im Suchindex, die Originalzutaten im Feld `og`. Kommen neue Rezepte dazu, zeigt `python3 tools/translate_en.py --fehlend ORDNER`, welche Einträge in den Tabellen noch fehlen.
 
 ## Fotos neu zuordnen
 

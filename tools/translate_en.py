@@ -27,7 +27,7 @@ QTY = re.compile(r'^\s*((?:\d+(?:[.,]\d+)?|[½¼¾⅓⅔⅛⅜⅝⅞])(?:\s*(?:\
 
 # Einheit: (Muster, deutsch Einzahl, deutsch Mehrzahl, Umrechnung (Faktor, Zieleinheit) oder None)
 UNITS = [
-    (r'fl\.?\s?oz\.?|fluid ounces?', '', '', (30, 'ml')),
+    (r'(?:us\s+)?(?:fl\.?|fluid)\s?(?:oz|ounces?)\.?', '', '', (30, 'ml')),
     (r'cups?|c\.', 'Tasse', 'Tassen', None),
     (r'(?-i:T)\.?', 'EL', 'EL', None),             # T = Esslöffel, t = Teelöffel (nur genaue Schreibung)
     (r'(?-i:t)\.?', 'TL', 'TL', None),
@@ -174,6 +174,7 @@ def translate_line(line, T, miss):
             continue                               # nur US-Maße in der Klammer
         de = T['preps'].get('(' + par.lower() + ')')
         if de is None: miss['preps'].add('(' + par.lower() + ')'); de = par
+        if '(' in de: de = re.sub(r'\s*\(([^()]*)\)', r', \1', de)    # keine Klammer in der Klammer
         if de: extra.append('(' + de + ')')
     unit_txt = ''
     if p['unit']:

@@ -191,7 +191,7 @@ def main():
     for r in web:
         if r['i'] in chosen: continue
         host = 'de.wikipedia.org' if r['l'] == 'de' else 'en.wikipedia.org'
-        for k, c in enumerate(candidates(r['n'])): jobs[host].setdefault(c, []).append((r['i'], k))
+        for k, c in enumerate(candidates(r.get('on', r['n']))): jobs[host].setdefault(c, []).append((r['i'], k))
     for host, tmap in jobs.items():
         print(host, len(tmap), 'Titel …', flush=True)
         found = lookup(host, list(tmap))
@@ -240,7 +240,7 @@ def main():
     t = open('data/web/index.js').read(); idx = json.loads(t[t.index('=') + 1:t.rindex(';')])
     for e in idx:
         e[8] = 1 if e[0] in chosen else 0
-        del e[10:]; e.append([entry(e[0])[0], entry(e[0])[3], entry(e[0])[4]] if e[0] in chosen else 0)
+        e[10:11] = [[entry(e[0])[0], entry(e[0])[3], entry(e[0])[4]] if e[0] in chosen else 0]   # e[11] (Originalname) bleibt erhalten
     open('data/web/index.js', 'w').write(t[:t.index('=') + 1] + json.dumps(idx, ensure_ascii=False, separators=(',', ':')) + ';\n')
     print('FERTIG eigene', len(bi), 'von', len(builtin), '| web', n_web, 'von', len(web), flush=True)
 

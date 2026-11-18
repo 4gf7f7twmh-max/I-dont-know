@@ -72,7 +72,7 @@ def main():
     s = open('data/web/index.js').read(); idx = json.loads(s[s.index('=') + 1:s.rindex(';')])
     for e in idx:
         im = imgs.get(e[0]); e[8] = 1 if im else 0
-        del e[10:]; e.append([im[0], im[3], im[4]] if im else 0)
+        e[10:11] = [[im[0], im[3], im[4]] if im else 0]   # e[11] (Originalname) bleibt erhalten
     open('data/web/index.js', 'w').write(s[:s.index('=') + 1] + json.dumps(idx, ensure_ascii=False, separators=(',', ':')) + ';\n')
 
 if __name__ == '__main__':
