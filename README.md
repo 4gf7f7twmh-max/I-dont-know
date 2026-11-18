@@ -11,7 +11,7 @@ Eigenständige Kochbuch-Web-App für Handy, Tablet und Computer (iPhone, Android
 - 37 animierte Techniken: Jeder Schritt zeigt, was zu tun ist, mit Temperatur, Ofenmodus, Thermomix-Stufe, Linkslauf, Kerntemperatur und Timer
 - Sterneküche mit Anrichte-Plan: Ein Teller von oben, auf dem jede Komponente nacheinander erscheint, dazu eine Anrichte-Schule mit 12 Grundtechniken
 - Familien: Eine Person gründet eine Familie und lädt per Code, Link oder QR-Code ein. Alle Mitglieder sehen die gemeinsame Einkaufsliste live, mit Namen, wer was eingetragen oder abgehakt hat. Ohne Netz wird gespeichert und später nachgesendet.
-- Echte Fotos für 1751 Rezepte: 799 Wikibooks-Rezepte mit ihrem eigenen Foto, dazu Beispielfotos aus den passenden Wikipedia-Artikeln. Beispielfotos sind als solche markiert, jedes Foto nennt Fotograf und Lizenz. Im Kochmodus zeigt der letzte Schritt, wie das Gericht aussehen soll.
+- Echte Fotos für 3229 Rezepte: alle 160 eigenen Rezepte und 3069 der 4362 Rezepte aus dem Netz. 799 Wikibooks-Rezepte haben ihr eigenes Foto, die übrigen ein Foto des Gerichts aus Wikipedia, Wikimedia Commons, Wikidata oder TheMealDB. Beispielfotos sind als solche markiert, jedes Foto nennt Fotograf und Lizenz. 1293 Rezepte haben noch kein Foto und zeigen das Symbol ihrer Kategorie. Im Kochmodus zeigt der letzte Schritt, wie das Gericht aussehen soll.
 - Kochmodus im Vollbild, mehrere Timer mit Ton und Vibration, Portionen umrechnen, Favoriten, Notizen, eigene Rezepte mit automatischer Schritterkennung, Hell und Dunkel
 - Suche auf Deutsch findet auch englische Rezepte („Hähnchen“ findet „Chicken“), dazu eine zusätzliche Live-Suche in TheMealDB
 
