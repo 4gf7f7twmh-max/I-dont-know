@@ -140,10 +140,10 @@
     var x = WEB.raw[id], e = WEB.idx[id];
     if (!x || !e) return null;
     var devs = webDevs(e[9] || 'h'), prim = devs[0];
-    var steps = x.s.map(function (t) { return autoStep(t, prim, x.l); });
+    var steps = x.s.map(function (t) { return autoStep(t, prim, x.mt ? 'de' : x.l); });
     var est = steps.reduce(function (s, st) { return s + (st[2].t || 0); }, 0);
     var r = {
-      id: id, n: x.n, c: x.c, k: x.k || '', p: x.p || 4, d: x.d || 2, v: x.v || 0, desc: x.desc, ing: x.g, tips: x.x, on: x.on, price: e[12] || (window.PRICE ? PRICE.estimate(x.g, x.p) : null),
+      id: id, n: x.n, c: x.c, k: x.k || '', p: x.p || 4, d: x.d || 2, v: x.v || 0, desc: x.desc, ing: x.g, tips: x.x, on: x.on, mt: x.mt, price: e[12] || (window.PRICE ? PRICE.estimate(x.g, x.p) : null),
       web: true, lang: x.l, im: x.im, srcUrl: x.u, needs: devs.slice(1),
       src: 'Wikibooks-Kochbuch (' + (x.l === 'de' ? 'deutsch' : 'englisch') + '), Lizenz CC BY-SA', m: {}
     };
@@ -376,7 +376,7 @@
       }).join('') + '</div></section>' +
 
       (webDe.length ? '<section class="sec"><div class="sec-h"><h2>Aus dem deutschen Wikibooks-Kochbuch</h2><a href="#entdecken" data-act="fsrc" data-v="de">Alle</a></div><div class="hscroll">' + webDe.map(card).join('') + '</div></section>' : '') +
-      (webEn.length ? '<section class="sec"><div class="sec-h"><h2>Weltküche (englische Originale)</h2><a href="#entdecken" data-act="fsrc" data-v="en">Alle</a></div><p class="muted" style="margin:-6px 0 12px">' + 'Originaltexte auf Englisch, Animationen und Timer werden automatisch zugeordnet.' + '</p><div class="hscroll">' + webEn.map(card).join('') + '</div></section>' : '') +
+      (webEn.length ? '<section class="sec"><div class="sec-h"><h2>Weltküche (aus dem Englischen)</h2><a href="#entdecken" data-act="fsrc" data-v="en">Alle</a></div><p class="muted" style="margin:-6px 0 12px">' + 'Aus dem englischen Wikibooks Cookbook, ins Deutsche übersetzt. Animationen und Timer werden automatisch zugeordnet.' + '</p><div class="hscroll">' + webEn.map(card).join('') + '</div></section>' : '') +
       '<section class="sec"><div class="sec-h"><h2>Eigene Kreationen</h2><a href="#entdecken" data-act="fcat" data-cat="kreation">Alle</a></div><p class="muted" style="margin:-6px 0 12px">Ideen von mir, nicht in einer Testküche erprobt.</p><div class="hscroll">' + kre.map(card).join('') + '</div></section>' +
       (quick.length ? '<section class="sec"><div class="sec-h"><h2>In 30 Minuten fertig</h2><a href="#entdecken" data-act="ftime">Alle</a></div><div class="hscroll">' + quick.map(card).join('') + '</div></section>' : '') +
       '<section class="sec"><div class="sec-h"><h2>Weltreise</h2></div><div class="chips">' +
@@ -430,7 +430,7 @@
       '<div class="searchbox" style="max-width:none">' + I('search') + '<input id="q" type="search" value="' + esc(f.q) + '" placeholder="Suche nach Gericht, Zutat, Land (deutsche Begriffe finden auch englische Rezepte)" autocomplete="off" aria-label="Suche"></div>' +
       '<div class="filter-label">Kategorie</div><div class="filter-row">' + chip('fc', '', f.cat, 'Alle') + Object.keys(CATS).map(function (c) { return chip('fc', c, f.cat, CATS[c].n); }).join('') + '</div>' +
       '<div class="filter-label">Gerät</div><div class="filter-row">' + chip('fd', '', f.dev, 'Alle Geräte') + Object.keys(DEV).map(function (d) { return chip('fd', d, f.dev, DEV[d].n, I('d_' + d, 'sm')); }).join('') + '</div>' +
-      '<div class="filter-label">Quelle, Ernährung, Zeit</div><div class="filter-row">' + chip('fs2', '', f.src, 'Alle Quellen') + chip('fs2', 'atlas', f.src, 'Kochatlas') + chip('fs2', 'de', f.src, 'Internet deutsch') + chip('fs2', 'en', f.src, 'Internet englisch') +
+      '<div class="filter-label">Quelle, Ernährung, Zeit</div><div class="filter-row">' + chip('fs2', '', f.src, 'Alle Quellen') + chip('fs2', 'atlas', f.src, 'Kochatlas') + chip('fs2', 'de', f.src, 'Internet deutsch') + chip('fs2', 'en', f.src, 'Internet übersetzt') +
       chip('fv', '', f.diet, 'Alles') + chip('fv', 'veg', f.diet, 'Vegetarisch') + chip('fv', 'vegan', f.diet, 'Vegan') +
       chip('ft', '0', String(f.time), 'Jede Dauer') + chip('ft', '30', String(f.time), '≤ 30 Min') + chip('ft', '60', String(f.time), '≤ 1 Std') + '</div>' +
       '<div class="filter-bar"><select class="input" data-change="fk" aria-label="Küche"><option value="">Alle Länder</option>' +
@@ -509,7 +509,7 @@
       '<div class="rstat">' + I('list') + '<b>' + steps.length + '</b><span>Schritte</span></div><div class="rstat">' + I('c_leaf') + '<b>' + (r.v === 2 ? 'Vegan' : r.v === 1 ? 'Vegetarisch' : r.web ? 'Siehe Zutaten' : 'Mit Fleisch/Fisch') + '</b><span>Ernährung</span></div></div>' + priceBar(r) +
       (r.c === 'kreation' ? '<div class="kreation-note">' + I('spark') + '<div><b>Eigene Kreation.</b> Diese Kombination habe ich mir ausgedacht. Die einzelnen Techniken sind erprobt, das Rezept als Ganzes wurde nicht in einer Testküche nachgekocht.</div></div>' : '') +
       (r.web ? '<div class="info" style="margin-bottom:6px">Quelle: <a href="' + esc(r.srcUrl) + '" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">' + esc(base.n) + '</a> aus dem ' + esc(r.src) + '. Die Animationen und Timer ordnet die App automatisch zu.</div>' : r.src ? '<div class="info" style="margin-bottom:14px">Quelle: ' + esc(r.src) + '</div>' : '') +
-      (r.lang === 'en' ? '<div class="info" style="margin:0 0 14px">' + I('info', 'sm') + ' Aus dem englischen Wikibooks Cookbook' + (r.on ? ' („' + esc(r.on) + '“)' : '') + '. Name und Zutaten sind übersetzt, US-Maße in Gramm und Milliliter umgerechnet, 1 Tasse sind etwa 240 ml. Die Zubereitung steht im englischen Original. Animationen, Timer und Temperaturen ordnet die App automatisch zu.</div>' : '') +
+      (r.lang === 'en' ? '<div class="info" style="margin:0 0 14px">' + I('info', 'sm') + ' Aus dem englischen Wikibooks Cookbook' + (r.on ? ' („' + esc(r.on) + '“)' : '') + '. Name und Zutaten sind übersetzt, US-Maße in Gramm, Milliliter und Zentimeter umgerechnet, °F in °C, 1 Tasse sind etwa 240 ml.' + (r.mt ? ' Zubereitung, Beschreibung und Tipps sind maschinell übersetzt (Opus-MT), einzelne Formulierungen können holpern.' : ' Die Zubereitung steht im englischen Original.') + ' Animationen, Timer und Temperaturen ordnet die App automatisch zu.</div>' : '') +
       '<section class="devpick"><h2>Womit kochst du?</h2><div class="devtabs">' + r.devs.map(function (d) {
         return '<button class="devtab ' + (d === dev ? 'on ' : '') + (S.devices.indexOf(d) < 0 && d !== 'kalt' ? 'notmine' : '') + '" data-act="tab" data-dev="' + d + '">' + I('d_' + d) + '<span><b>' + DEV[d].n + (r.m[d].ai ? ' ✦' : '') + '</b><small>' + fmtTime(r.m[d].t) + '</small></span></button>';
       }).join('') + '</div>' + (r.needs && r.needs.length && !m.ai ? '<p class="muted" style="font-size:13.5px;margin:6px 0 0">Laut Anleitung außerdem nötig: ' + r.needs.map(function (d) { return DEV[d].n; }).join(', ') + '</p>' : '') + '</section>' +

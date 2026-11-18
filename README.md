@@ -6,7 +6,7 @@ Eigenständige Kochbuch-Web-App für Handy, Tablet und Computer (iPhone, Android
 
 - 4522 Rezepte aus über 120 Ländern
   - 193 eigene Rezepte mit getrennten Anleitungen pro Gerät, davon 24 aus der Sterneküche, 18 eigene Kreationen und 18 schnelle Gerichte, die in höchstens 25 Minuten fertig sind
-  - 4362 Rezepte aus dem Internet: das komplette deutsche Wikibooks-Kochbuch (650) und das englische Wikibooks Cookbook (3712), Lizenz CC BY-SA, jeweils mit Link zum Original. Bei den englischen Rezepten sind Name und Zutaten ins Deutsche übersetzt und US-Maße in Gramm und Milliliter umgerechnet, die Zubereitung steht im Original
+  - 4362 Rezepte aus dem Internet: das komplette deutsche Wikibooks-Kochbuch (650) und das englische Wikibooks Cookbook (3712), Lizenz CC BY-SA, jeweils mit Link zum Original. Bei den englischen Rezepten sind Name und Zutaten ins Deutsche übersetzt und US-Maße in Gramm und Milliliter umgerechnet. Zubereitung, Beschreibung und Tipps sind maschinell übersetzt (Opus-MT, läuft offline beim Erstellen der Daten, die App braucht dafür nichts)
 - Anleitungen für Herd, Backofen, Heißluftfritteuse, Thermomix, Mikrowelle, Schnellkochtopf, Slow Cooker, Grill, Sous-vide oder ganz ohne Kochen
 - 37 animierte Techniken: Jeder Schritt zeigt, was zu tun ist, mit Temperatur, Ofenmodus, Thermomix-Stufe, Linkslauf, Kerntemperatur und Timer
 - Geschätzter Preis bei jedem Rezept: pro Portion und immer für 4 Personen, als Spanne vom Discounter bis zur Markenware. Die Schätzung rechnet die Zutaten mit eigenen Durchschnittspreisen für deutsche Supermärkte (`js/prices.js`) zusammen, für die Internet-Rezepte vorab berechnet mit `node tools/compute_prices.js`. In der Suche lässt sich nach „Günstigste zuerst“ sortieren.
@@ -118,6 +118,7 @@ tools/add_photos.py        Commons-Fotos für neue eigene Rezepte in data/images
 tools/compute_prices.js    Preisschätzung für die Internet-Rezepte (Spalte 13 im Suchindex)
 js/prices.js               Preistabelle und Schätzung
 tools/translate_en.py      Übersetzung der englischen Rezepte (Namen, Zutaten)
+tools/translate_mt.py      maschinelle Übersetzung von Zubereitung, Beschreibung und Tipps
 tools/translations/        Übersetzungstabellen
 sw.js                 Offline-Modus
 ```
@@ -158,6 +159,8 @@ python3 tools/translate_en.py
 ```
 
 `tools/translate_en.py` übersetzt Namen und Zutaten der englischen Rezepte mit den Tabellen in `tools/translations/` (englisch TAB deutsch). Mengen und Einheiten rechnet das Skript selbst um: Unzen, Pfund, Pints und US-Butterstangen in Gramm bzw. Milliliter, Esslöffel und Teelöffel in EL und TL, Tassen bleiben Tassen. Der Originalname bleibt im Feld `on` und im Suchindex, die Originalzutaten im Feld `og`. Kommen neue Rezepte dazu, zeigt `python3 tools/translate_en.py --fehlend ORDNER`, welche Einträge in den Tabellen noch fehlen.
+
+`tools/translate_mt.py` übersetzt Zubereitung, Beschreibung und Tipps der englischen Rezepte mit dem freien Modell Opus-MT Englisch-Deutsch (Helsinki-NLP, CC BY 4.0) über CTranslate2 auf der CPU. Vorher rechnet es °F in °C, Zoll in Zentimeter, Quart in Liter sowie Unzen und Pfund in Gramm um. Die englischen Originaltexte liegen in `tools/translations/en_texts.json.gz`, die Satzübersetzungen in `tools/translations/mt_cache.jsonl.gz`; mit `--nur-schreiben` schreibt das Skript die Chunks neu, ohne das Modell zu brauchen. Wie das Modell vorbereitet wird, steht im Kopf des Skripts. Ein Lauf über alle 3712 Rezepte dauert auf vier CPU-Kernen etwa eine halbe Stunde.
 
 ## Fotos neu zuordnen
 
