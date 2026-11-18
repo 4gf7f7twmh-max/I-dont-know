@@ -119,7 +119,7 @@ h1, h2, h3 { margin: 0; line-height: 1.05; text-wrap: balance; }
 
 main { max-width: 1320px; margin: 0 auto; padding: 22px max(16px, env(safe-area-inset-right, 0px)) 70px max(16px, env(safe-area-inset-left, 0px)); min-height: 70vh; }
 .view-enter { animation: viewIn .5s cubic-bezier(.16, 1, .3, 1); }
-@keyframes viewIn { from { opacity: 0; transform: translateY(18px) scale(.995); filter: blur(4px); } }
+@keyframes viewIn { from { opacity: 0; transform: translateY(18px); } }
 .rv { transition: opacity .7s cubic-bezier(.16, 1, .3, 1), transform .7s cubic-bezier(.16, 1, .3, 1); }
 .rv:not(.in) { opacity: 0; transform: translateY(28px); }
 
@@ -556,3 +556,22 @@ textarea.input { min-height: 110px; resize: vertical; line-height: 1.5; }
 .pricebar .pl { display: block; font: 600 10.5px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .pricebar b { display: block; font: 700 clamp(17px, 2.4vw, 22px)/1.2 var(--mono); color: var(--accent); }
 .pricebar p { grid-column: 1 / -1; margin: 4px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+
+/* ---------- Leicht auf Handys und Tablets ----------
+   Unschärfe hinter Elementen (backdrop-filter), Weichzeichner, Mischmodi und Dauer-Animationen kosten auf
+   iPhones viel Grafikspeicher; zu viel davon lässt Safari die Seite abbrechen. Auf Touch-Geräten daher
+   feste, halbtransparente Hintergründe statt Unschärfe. */
+@media (hover: none), (pointer: coarse) {
+  body::after { display: none; }
+  *, *::before, *::after { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  .nav { background: #0b0d12 !important; }
+  .badge, .fav-btn { background: rgba(7, 8, 11, .78); }
+  .rhero .glass-btn { background: rgba(20, 22, 28, .82); }
+  .home-hero .searchbox input { background: rgba(255, 255, 255, .12); }
+  .blob { filter: none !important; animation: none !important; opacity: .45; }
+  .grad-text { animation: none !important; }
+  .blob.b2 { opacity: .3; } .blob.b3 { opacity: .22; }
+  .hero-art .ring, .hero-art .tag, .rhero-art::before { animation: none !important; }
+  .rcard { transform: none !important; will-change: auto !important; }
+  .rv { transition-duration: .4s; }
+}

@@ -73,7 +73,23 @@
   /* ---------- Internet-Rezepte (Wikibooks) ---------- */
   var DVMAP = { a: 'airfryer', d: 'dkt', s: 'slow', m: 'mikro', g: 'grill', o: 'ofen', h: 'herd', k: 'kalt' };
   var WEB = { raw: {}, rec: {}, idx: {} };
-  (window.KA_WEB_INDEX || []).forEach(function (e) { WEB.idx[e[0]] = e; });
+  /* Der Index der 4362 Internet-Rezepte (840 KB) wird erst nach der ersten Ansicht geladen, damit die App auch auf
+     langsamen Handys sofort erscheint. Danach werden Start, Entdecken, Favoriten und Internet-Rezepte neu gezeichnet. */
+  function applyIndex() { WEB.idx = {}; (window.KA_WEB_INDEX || []).forEach(function (e) { WEB.idx[e[0]] = e; }); WEB.ready = !!window.KA_WEB_INDEX; resetAll(); }
+  applyIndex();
+  function loadIndex() {
+    if (WEB.ready || WEB.loading) return;
+    WEB.loading = true;
+    var s = document.createElement('script');
+    s.src = 'data/web/index.js';
+    s.onload = function () {
+      applyIndex();
+      var p = route();
+      if (!ui.cook && (p === '/' || p === '' || p === '/entdecken' || p === '/favoriten' || p.indexOf('/r/wb-') === 0)) render(true);
+    };
+    s.onerror = function () { WEB.loading = false; setTimeout(loadIndex, 5000); };
+    document.head.appendChild(s);
+  }
   var chunkWait = {};
   window.KA_WEB_CHUNK = function (n, arr) {
     arr.forEach(function (x) { WEB.raw[x.i] = x; });
@@ -96,10 +112,18 @@
     order.split('').forEach(function (k) { if (code.indexOf(k) >= 0) list.push(DVMAP[k]); });
     return list.length ? list : ['herd'];
   }
+  /* gekürzte Bildpfade aus tools/compact_index.js wieder zusammensetzen */
+  function wbEnc(f) { return encodeURIComponent(String(f).replace(/ /g, '_')).replace(/[!'()*]/g, function (c) { return '%' + c.charCodeAt(0).toString(16).toUpperCase(); }); }
+  function wbImgPath(im) {
+    var p = im[0];
+    if (/^[0-9a-f]\/[0-9a-f]{2}$/.test(p)) return p + '/' + wbEnc(im[1]) + '/960px-' + wbEnc(im[1]);
+    if (/^O:[0-9a-f]\/[0-9a-f]{2}$/.test(p)) return 'https://upload.wikimedia.org/wikipedia/commons/' + p.slice(2) + '/' + wbEnc(im[1]);
+    return p;
+  }
   function webLite(e) {
     var devs = webDevs(e[9] || 'h');
     return {
-      id: e[0], n: e[1], c: e[2], k: e[3], v: e[4], minTime: e[5], lang: e[6], chunk: e[7], hasImg: e[8], price: e[12] || null, web: true, im: e[10] ? [e[10][0], '', '', e[10][1], e[10][2] || ''] : null,
+      id: e[0], n: e[1], c: e[2], k: e[3], v: e[4], minTime: e[5], lang: e[6], chunk: e[7], hasImg: e[8], price: e[12] || null, web: true, im: e[10] ? [wbImgPath(e[10]), '', '', e[10][1], e[10][2] || ''] : null,
       devs: [devs[0]], needs: devs.slice(1), d: 2,
       _search: fold(e[1] + ' ' + (e[11] || '') + ' ' + e[3] + ' ' + ((CATS[e[2]] || {}).n || ''))
     };
@@ -478,6 +502,7 @@
   }
   function vRecipe(id) {
     var base = byId(id);
+    if (!base && !WEB.ready && id.indexOf('wb-') === 0) return '<div class="empty">' + I('book') + '<h3>Rezept wird geladen …</h3></div>';
     if (!base && WEB.idx[id]) {
       loadChunk(WEB.idx[id][7]).then(function () { if (route() === '/r/' + id) render(true); }).catch(function () { var v = $('#view'); if (v) v.innerHTML = '<div class="empty">' + I('info') + '<h3>Rezept konnte nicht geladen werden</h3><p>Seite neu laden oder Internetverbindung prüfen.</p></div>'; });
       return '<div class="empty">' + I('book') + '<h3>Rezept wird geladen …</h3></div>';
@@ -880,6 +905,7 @@
     var c = $('.nav a[data-nav="shop"] .count'); if (c) { c.textContent = open; c.style.display = open ? '' : 'none'; }
     var fc = $('.nav a[data-nav="favs"] .count'); if (fc) { fc.textContent = S.favs.length; fc.style.display = S.favs.length ? '' : 'none'; }
   }
+  var coarse = window.matchMedia && matchMedia('(hover: none), (pointer: coarse)').matches;
   var lastPath = null;
   function render(keepScroll) {
     var p = route(), v = $('#view'), html, title = 'Kochatlas', m;
@@ -904,6 +930,8 @@
     if (p === '/entdecken') renderResults();
     if (p === '/familie') drawQr();
     observeScenes(); navState(p); if (!keepScroll) reveal();
+    /* Auf Handys läuft die Szene im Startbanner nur kurz: dauernd animiertes SVG hält sonst Prozessor und Grafik voll beschäftigt */
+    if (coarse) { var hs = $('#view .home-hero .scene.force'); if (hs) setTimeout(function () { hs.classList.remove('play'); }, 6000); }
     if (keepScroll) window.scrollTo(0, y); else if (lastPath !== p) window.scrollTo(0, 0);
     lastPath = p;
   }
@@ -1139,6 +1167,7 @@
     $('#logo').innerHTML = '<span class="logo-mark">' + I('flame') + '</span>Kochatlas';
     $('#searchbtn').innerHTML = I('search');
     applyTheme(); render();
+    requestAnimationFrame(function () { setTimeout(loadIndex, 50); });
     var lastSig = '';
     SY.on(function (st) {
       navState(route());

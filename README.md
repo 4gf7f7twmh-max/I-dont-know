@@ -119,6 +119,7 @@ tools/compute_prices.js    Preisschätzung für die Internet-Rezepte (Spalte 13 
 js/prices.js               Preistabelle und Schätzung
 tools/translate_en.py      Übersetzung der englischen Rezepte (Namen, Zutaten)
 tools/translate_mt.py      maschinelle Übersetzung von Zubereitung, Beschreibung und Tipps
+tools/compact_index.js     kürzt die Bildpfade im Rezeptindex (nach jedem Werkzeug laufen lassen, das den Index schreibt)
 tools/translations/        Übersetzungstabellen
 sw.js                 Offline-Modus
 ```
